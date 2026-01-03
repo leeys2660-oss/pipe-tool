@@ -436,6 +436,24 @@ max-height: 95vh;
 }
 
 
+
+@media screen and (max-width: 768px) {
+    #ui, #rightUI {
+      width: 100%;
+      position: relative;
+      max-height: 30vh;
+      top: 0;
+      left: 0;
+      right: 0;
+    }
+    #topViewBar {
+      left: 10px;
+      flex-wrap: wrap;
+    }
+  }
+
+  
+
 </style>
 </head>
 
@@ -7735,6 +7753,43 @@ function focusOnSelection() {
   
   console.log("개체 보기 실행: 거리", Math.round(radius));
 }
+
+
+
+/* ========== 터치 지원 추가 ========== */
+/* ========== 터치 지원 추가 (기존 마우스 로직 연결) ========== */
+canvas.addEventListener("touchstart", (e) => {
+  if (e.touches.length === 1) {
+    const touch = e.touches[0];
+    // 가상의 마우스 왼쪽 버튼 클릭(button: 0) 이벤트를 만들어서 mousedown 로직 실행
+    const mouseEvent = new MouseEvent("mousedown", {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      button: 0
+    });
+    canvas.dispatchEvent(mouseEvent);
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchmove", (e) => {
+  if (e.touches.length === 1) {
+    e.preventDefault(); // 스크롤 방지
+    const touch = e.touches[0];
+    // 가상의 mousemove 이벤트 생성
+    const mouseEvent = new MouseEvent("mousemove", {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    window.dispatchEvent(mouseEvent);
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchend", (e) => {
+  // 가상의 mouseup 이벤트 생성
+  const mouseEvent = new MouseEvent("mouseup", {});
+  window.dispatchEvent(mouseEvent);
+}, { passive: false });
+
 
 /* ========== 마우스 이벤트 ========== */
 canvas.addEventListener("mousedown", e => {
