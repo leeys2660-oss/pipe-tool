@@ -439,42 +439,46 @@ max-height: 95vh;
 
 /* 📱 모바일/태블릿 반응형 최적화 */
 @media screen and (max-width: 768px) {
+  /* 패널들을 반투명하게 하고 높이를 조절 */
   #ui, #rightUI {
     width: 100% !important;
     position: relative !important;
-    max-height: 40vh !important;
+    max-height: 25vh !important; /* 높이를 더 줄임 */
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
+    background: rgba(30, 30, 30, 0.85) !important; /* 약간 투명하게 */
     border-radius: 0;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
+    box-shadow: none;
   }
   
   #topViewBar {
-    position: relative !important;
-    left: 0 !important;
-    right: 0 !important;
+    position: sticky !important; /* 스크롤해도 상단 고정 */
     top: 0 !important;
+    left: 0 !important;
     width: 100% !important;
     height: auto !important;
     flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-    padding: 10px 5px;
+    gap: 4px;
+    padding: 5px !important;
+    border-radius: 0;
   }
 
   .top-btn {
-    padding: 10px 8px; /* 손가락 터치용 크기 확대 */
-    font-size: 11px;
-    flex: 1 1 30%; /* 버튼이 줄바꿈되며 꽉 차게 */
-    text-align: center;
+    flex: 1 1 22%; /* 버튼을 더 작게 배치 */
+    padding: 6px 2px !important;
+    font-size: 10px !important;
   }
 
+  /* 3D 화면이 메뉴 뒤에 깔리도록 설정 */
   canvas#c {
-    position: fixed;
+    position: fixed !important;
     top: 0;
     left: 0;
-    z-index: -1; /* 캔버스를 배경으로 밀어 레이아웃 방해 금지 */
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: -1;
   }
 }
 </style>
