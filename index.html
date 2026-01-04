@@ -158,12 +158,14 @@
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       font-size: 13px;
-      width:  200px;
+      width:  180px;
       box-sizing: border-box;
     
 max-height: 95vh;
-  overflow-y: auto;
+  overflow-y: auto;    /* 세로 스크롤은 유지 (내용이 길어지면 생김) */
+    overflow-x: hidden;  /* 👈 이 줄을 추가하면 가로 스크롤이 사라집니다 */
 }
+
 
 
     /* 상단 View 바 */
@@ -602,7 +604,7 @@ max-height: 95vh;
 
 <!-- 좌측 UI 패널 -->
 <div id="ui">
-  <div class="ui-title">Pipe 3D Toolkit</div>
+  <div class="ui-title">Auto Pipe Connect</div>
 <!-- === STL 파일 === -->
   <div class="ui-group">
     <div class="ui-header">🧱 STL 파일</div>
@@ -5197,10 +5199,10 @@ window.spawnProceduralBushing20A15A = function() {
   const MM_PER_UNIT = 100;
 
   // 1. 규격
-  const HEX_WIDTH_MM = 39;      
+  const HEX_WIDTH_MM = 42;      
   const HEX_HEIGHT_MM = 5;      
   const CYL_OD_MM = 27.2;       
-  const CYL_HEIGHT_MM = 5;      
+  const CYL_HEIGHT_MM = 2;      
   const TOTAL_HEIGHT_MM = 10;   
   const CHAMFER_MM = 1; // [추가]
 
@@ -6713,10 +6715,10 @@ window.spawnProceduralBushing25A20A = function() {
   const MM_PER_UNIT = 100;
 
   // 1. 규격
-  const HEX_WIDTH_MM = 46;      
+  const HEX_WIDTH_MM = 52;      
   const HEX_HEIGHT_MM = 6;      
   const CYL_OD_MM = 34;         
-  const CYL_HEIGHT_MM = 6;      
+  const CYL_HEIGHT_MM = 2;      
   const TOTAL_HEIGHT_MM = 12;   
   const CHAMFER_MM = 1; // [추가]
 
