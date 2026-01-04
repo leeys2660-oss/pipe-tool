@@ -10,6 +10,57 @@
       font-family: sans-serif;
     }
 
+/* 드롭다운 컨테이너 */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* 실제 메뉴 창 */
+.dropdown-content {
+  display: none;           /* 기본적으로는 숨김 */
+  position: absolute;
+  top: var(--topBarH);     /* 상단바 바로 아래에 표시 */
+  left: 0;
+  background-color: #2a2a2a;
+  min-width: 140px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+  z-index: 1000;
+  border-radius: 4px;
+  border: 1px solid #444;
+}
+
+/* 메뉴 내부의 링크(버튼)들 */
+.dropdown-content a {
+  color: #ddd;
+  padding: 8px 12px;
+  text-decoration: none;
+  display: block;
+  font-size: 12px;
+}
+
+/* 기존 .dropdown:hover .dropdown-content { display: block; } 은 삭제하세요! */
+
+/* 자바스크립트로 메뉴를 보여줄 때 사용할 클래스 */
+.dropdown-content.show {
+  display: block;
+}
+
+/* 메뉴가 상단바에 너무 바짝 붙어 마우스가 나가는 걸 방지하기 위해 위치 미세 조정 */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  top: 100%; /* 버튼 바로 아래 붙음 */
+  left: 0;
+  background-color: #2a2a2a;
+  min-width: 150px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+  z-index: 1000;
+  border-radius: 4px;
+  border: 1px solid #444;
+  margin-top: 2px; /* 버튼과의 미세한 간격 */
+}
+
 
 
 :root{
@@ -28,7 +79,7 @@
   top: calc(var(--topBarH) + var(--panelGap));
   right: 10px;
   z-index: 40; /* 상단바보다 낮게 */
-  width: 220px;
+  width: 150px;
   max-height: calc(95vh - var(--topBarH));
   overflow-y: auto;
 
@@ -500,20 +551,20 @@ max-height: 95vh;
   <button class="top-btn" onclick="setView('right')" style="color: #91f17e;">RIGHT</button>
   <button class="top-btn" onclick="setView('top')" style="color: #91f17e;">TOP</button>
   <button class="top-btn" onclick="focusOnSelection()" style="color: #91f17e;">(X)Select View</button>
-  <button class="top-btn" onclick="resetCamera()" style="color: #91f17e;">(C)V-Reset</button>
+  <button class="top-btn" onclick="resetCamera()" style="color: #91f17e;">(R)V-Reset</button>
 
 
   </div>
 
  <!-- 중앙: 정렬 -->
 <div class="centerGroup">
-  <button class="top-btn" onclick="attachSelectedGroup()" style="color: #e3eb7b;">(A)SNAP</button>
-  <button class="top-btn" onclick="placeSelectionOnGround()" style="color: #e3eb7b;">(B)FLOOR</button>
+  <button class="top-btn" onclick="attachSelectedGroup()" style="color: #e3eb7b;">(S)SNAP</button>
+  <button class="top-btn" onclick="placeSelectionOnGround()" style="color: #e3eb7b;">(F)FLOOR</button>
   <button class="top-btn" onclick="alignSelectionAxis('z')" style="color: #e3eb7b;">RED</button>
   <button class="top-btn" onclick="alignSelectionAxis('x')" style="color: #e3eb7b;">BLUE</button>
   <button class="top-btn" onclick="alignSelectionAxis('y')" style="color: #e3eb7b;">TOP</button>
   <button class="top-btn" onclick="alignSelectionToAnchorCenter({axes:'xyz'})" style="color: #e3eb7b;">CENTER</button>
-  <button class="top-btn" onclick="snapPlateToPillarsTop()" style="color: #e3eb7b;">TOP END</button>
+  <button class="top-btn" onclick="snapPlateToPillarsTop()" style="color: #e3eb7b;">ETE</button>
 </div>
 
 
@@ -522,12 +573,22 @@ max-height: 95vh;
 
   <!-- 오른쪽: 편집 + 정렬 -->
   <div class="rightGroup">
-    <button class="top-btn" onclick="undo()" style="color: #ff7070;">↩ Undo</button>
-  <button class="top-btn" onclick="redo()" style="color: #ff7070;">↪ Redo</button>
+    <button class="top-btn" onclick="handleGroupKey()" style="color: #61dafb;">Group(G)</button>
+  <button class="top-btn" onclick="toggleDimensionUI()" style="color: #61dafb;">Dim(D)</button>
+  <button class="top-btn" id="rotateBtn" onclick="handleRotateToggle()" style="color: #61dafb;">Rotate(L)</button>
+    <button class="top-btn" onclick="undo()" style="color: #ff7070;">↩</button>
+  <button class="top-btn" onclick="redo()" style="color: #ff7070;">↪</button>
 
-  <button class="top-btn" onclick="exportSelectedToSTL()" style="color: #75acff;">STL 내보내기</button>
-  <button class="top-btn" onclick="saveProjectJSON()" style="color: #75acff;">저장</button>
-  <button class="top-btn" onclick="document.getElementById('projectFileInput').click()" style="color: #75acff;">불러오기</button>
+  <div class="dropdown">
+  <button class="top-btn" id="projectBtn" onclick="toggleProjectMenu(event)" style="color: #75acff; font-weight: bold;">📁 PROJECT</button>
+  <div class="dropdown-content" id="projectMenu">
+    <a href="#" onclick="exportSelectedToSTL()">STL 내보내기</a>
+    <a href="#" onclick="saveProjectJSON()">프로젝트 저장</a>
+    <a href="#" onclick="document.getElementById('projectFileInput').click()">프로젝트 불러오기</a>
+  </div>
+</div>
+
+
   <input id="projectFileInput" type="file" accept=".json" style="display:none" />
 </div>
 </div>
@@ -633,29 +694,16 @@ max-height: 95vh;
   <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
 </div>
 
-
-<!-- STL 내보내기  프로젝트 저장 불러오기 상단 우측으로 이동  -->
-<!-- <div class="ui-group">
-  <div class="ui-header">📤 내보내기</div>
-  <button onclick="exportSelectedToSTL()">💾 STL 내보내기</button>
-</div>
-<div class="ui-group">
-  <div class="ui-header">💾 저장/불러오기</div>
-  <button onclick="saveProjectJSON()">📌 프로젝트 저장</button>
-  <button onclick="document.getElementById('projectFileInput').click()">📂 프로젝트 불러오기</button>
-  <input id="projectFileInput" type="file" accept=".json" style="display:none" />
-</div>
-</div> -->
- 
-
 <!-- 사각 원형 -->
   <div style="margin-top:10px;">
-    <div style="opacity:0.85; font-size:12px; margin-bottom:6px;"></div>
-    <div style="display:flex; gap:6px;">
-       <button onclick="spawnRectPlateWithPrompt()">⬜</button>
-    <button onclick="spawnCirclePlatePrompt()">⬤</button>
-    </div>
+  <div style="opacity:0.85; font-size:11px; margin-bottom:6px;"></div>
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+    <button onclick="spawnRectPlateWithPrompt()">PLT-R ⬜</button>
+    <button onclick="spawnCirclePlatePrompt()">PLT-C ⬤</button>
   </div>
+</div>
+
+
   <hr style="border:none; border-top:1px solid rgba(255,255,255,0.12); margin:10px 0;">
 
   <div>
@@ -760,6 +808,29 @@ function setSelectedObject(obj) {
   updatePortVisuals(obj); 
 
 }
+
+
+
+
+
+// 프로젝트 메뉴 토글 함수
+function toggleProjectMenu(event) {
+  event.stopPropagation(); // 버튼 클릭 시 이벤트가 바닥(캔버스)으로 전파되는 것 방지
+  const menu = document.getElementById("projectMenu");
+  menu.classList.toggle("show");
+}
+
+// 메뉴 외부 어디든 클릭하면 메뉴 닫기
+window.addEventListener("click", function(e) {
+  const menu = document.getElementById("projectMenu");
+  if (menu && menu.classList.contains("show")) {
+    if (!menu.contains(e.target) && e.target.id !== "projectBtn") {
+      menu.classList.remove("show");
+    }
+  }
+});
+
+
 
 
 /* =========================================================
@@ -1396,9 +1467,17 @@ const FITTING_META = {
   "nipple.stl":  { axis:"z", fracIn1:0.2, fracIn2:0.2 }
 };
 
+
 /* ========== 기본 3D 세팅 ========== */
 const canvas = document.getElementById("c");
-const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+
+// 기존의 renderer 선언 부분을 아래 하나로 합칩니다.
+const renderer = new THREE.WebGLRenderer({
+  canvas: canvas, 
+  antialias: true, 
+  alpha: true  // 👈 배경 투명을 위해 alpha: true를 추가했습니다.
+});
+
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 
@@ -2593,41 +2672,83 @@ function hideSelectionRect() {
 }
 window.snapPlateToPillarsTop = function () {
   const all = selectedSet.size > 0 ? [...selectedSet] : (selectedMesh ? [selectedMesh] : []);
+  
+  // 1) 최소 2개 이상 선택 확인
   if (all.length < 2) {
-    alert("기둥들 + 마감판을 같이 선택하세요.");
+    alert("기둥(부속/그룹)들과 마감판을 같이 선택하세요. (마지막 선택이 이동됨)");
     return;
   }
 
-  const plate = selectedMesh; // ✅ 마지막 선택이 마감판
-  if (!plate) return;
+  // 2) 마지막에 선택한 것이 이동할 '판' 혹은 '부속'
+  const mover = selectedMesh; 
+  if (!mover) return;
 
   saveState();
 
-  // 1) 기둥들(plate 제외) bbox
-  const pillars = all.filter(o => o !== plate);
-  const pBox = new THREE.Box3();
-  pillars.forEach(o => pBox.union(new THREE.Box3().setFromObject(o)));
+  // 3) 기준이 되는 부속들(mover 제외)의 통합 박스 계산
+  const targets = all.filter(o => o !== mover);
+  const targetBox = new THREE.Box3();
+  
+  targets.forEach(o => {
+    // 객체가 그룹이든 메쉬든 모든 자식을 포함한 영역을 계산하여 합침
+    const b = new THREE.Box3().setFromObject(o);
+    targetBox.union(b);
+  });
 
-  const pillarsCenter = new THREE.Vector3();
-  pBox.getCenter(pillarsCenter);
+  // 4) 이동할 물체의 박스 계산
+  const moverBox = new THREE.Box3().setFromObject(mover);
 
-  const topY = pBox.max.y; // 기둥 최상단
+  // 5) 중심점 및 거리 계산
+  const tCenter = new THREE.Vector3();
+  const mCenter = new THREE.Vector3();
+  targetBox.getCenter(tCenter);
+  moverBox.getCenter(mCenter);
 
-  // 2) plate bbox
-  const plateBox = new THREE.Box3().setFromObject(plate);
-  const plateCenter = new THREE.Vector3();
-  plateBox.getCenter(plateCenter);
+  const diffX = mCenter.x - tCenter.x;
+  const diffY = mCenter.y - tCenter.y;
+  const diffZ = mCenter.z - tCenter.z;
 
-  // 3) XZ 센터 정렬
-  plate.position.x += (pillarsCenter.x - plateCenter.x);
-  plate.position.z += (pillarsCenter.z - plateCenter.z);
+  // 🔴 크로스티 보정값 (필요 시)
+  const isMoverCrossTee = mover.name === "CrossTee15A" || (mover.userData && mover.userData.kind === "cross");
+  const gapCorrection = isMoverCrossTee ? 0.001 : 0;
 
-  // 4) plate 바닥면(minY)이 topY에 닿게
-  const newPlateBox = new THREE.Box3().setFromObject(plate);
-  const newPlateMinY = newPlateBox.min.y;
-  plate.position.y += (topY - newPlateMinY);
+  // 6) 판 배치 핵심 로직: 위/아래 방향일 때의 우선순위 강화
+  // 보통 판을 배치할 때는 부속보다 '위'에 두고 버튼을 누르므로 Y축 차이를 먼저 봅니다.
+  const absX = Math.abs(diffX);
+  const absY = Math.abs(diffY);
+  const absZ = Math.abs(diffZ);
+
+  // 만약 Y축 차이가 어느 정도 있거나, 판을 위에 올리는 의도가 명확할 때
+  if (absY >= absX && absY >= absZ) {
+    if (diffY > 0) {
+      // ✅ [TOP SNAP] 기둥들 최상단(max.y)에 판 바닥(min.y)을 붙임
+      mover.position.y += (targetBox.max.y - moverBox.min.y) - gapCorrection;
+    } else {
+      // [BOTTOM SNAP] 기둥들 최하단(min.y)에 판 천장(max.y)을 붙임
+      mover.position.y += (targetBox.min.y - moverBox.max.y) + gapCorrection;
+    }
+    
+    // ✅ 핵심: 기둥들(그룹 포함)의 전체 XZ 정중앙으로 판을 이동
+    mover.position.x += (tCenter.x - mCenter.x);
+    mover.position.z += (tCenter.z - mCenter.z);
+  } 
+  else if (absX >= absY && absX >= absZ) {
+    // 좌우 스냅
+    if (diffX > 0) mover.position.x += (targetBox.max.x - moverBox.min.x);
+    else mover.position.x += (targetBox.min.x - moverBox.max.x);
+    mover.position.y += (tCenter.y - mCenter.y);
+    mover.position.z += (tCenter.z - mCenter.z);
+  } 
+  else {
+    // 앞뒤 스냅
+    if (diffZ > 0) mover.position.z += (targetBox.max.z - moverBox.min.z);
+    else mover.position.z += (targetBox.min.z - moverBox.max.z);
+    mover.position.x += (tCenter.x - mCenter.x);
+    mover.position.y += (tCenter.y - mCenter.y);
+  }
 
   updateRotationGizmo();
+  if (typeof render === "function") render();
 };
 
 
@@ -4253,6 +4374,10 @@ window.spawnProceduralCrossTee15A = function() {
   mainMesh.children.forEach(child => {
       child.userData = Object.assign({}, mainMesh.userData);
   });
+
+
+// 🔴 여기에 이 줄을 추가하세요! (스냅 보정용 이름표)
+  mainMesh.name = "CrossTee15A";
 
   // --- 5. 배치 ---
   placeOnGround(mainMesh);
@@ -5895,6 +6020,9 @@ window.spawnProceduralCrossTee20A = function() {
   mainMesh.children.forEach(child => {
       child.userData = Object.assign({}, mainMesh.userData);
   });
+
+// 🔴 여기에 이 줄을 추가하세요! (스냅 보정용 이름표)
+  mainMesh.name = "CrossTee20A";
 
   // --- 5. 배치 ---
   placeOnGround(mainMesh);
@@ -8222,6 +8350,27 @@ window.addEventListener("mousemove", e=>{
 
 });
 
+
+// 마우스 클릭을 뗐을 때 실행되는 부분에 추가
+window.addEventListener("mouseup", () => {
+  if (gizmoEnabled) {
+    // 회전 조작을 마쳤으므로 0.1초 뒤에 자동으로 끕니다.
+    setTimeout(() => {
+      gizmoEnabled = false;
+      if (typeof updateRotationGizmo === "function") updateRotationGizmo();
+      
+      // 버튼 색상 원복
+      const btn = document.getElementById("rotateBtn");
+      if (btn) {
+        btn.style.color = "#61dafb";
+        btn.style.border = "none";
+      }
+    }, 100); 
+  }
+});
+
+
+
 window.addEventListener("mouseup", e=>{
   if (dragMode === "rect") {
     const minX = Math.min(rectStartX, rectEndX);
@@ -8277,7 +8426,7 @@ window.addEventListener("keydown", (e) => {
   const key = e.key.toLowerCase();
 
 // ✅ 시점 초기화 단축키 (숫자 0) - 강제 리셋 버전
-if (key === "c" ) {
+if (key === "r" ) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     
     console.log("시점 초기화 작동 시도");
@@ -8315,12 +8464,12 @@ return;
 
 
 
-  // L : 회전 링 표시
-  if (!e.ctrlKey && !e.metaKey && key === "l") {
-    gizmoEnabled = true;
-    updateRotationGizmo();
-    return;
-  }
+// L : 회전 링 표시 (수정 버전)
+if (!e.ctrlKey && !e.metaKey && key === "l") {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  handleRotateToggle(); // 이제 이 함수가 토글과 색상변경을 모두 처리합니다.
+  return;
+}
 
  if (e.ctrlKey || e.metaKey) {
   // ✅ Undo: Ctrl+Z
@@ -8352,22 +8501,13 @@ return;
 
 
 
-  // 1: 스냅 온/오프, 2: 자석 플래그
-  if (key === "1") {
-    snapEnabled = !snapEnabled;
-    console.log("Snap:", snapEnabled);
-    return;
-  }
-  if (key === "2") {
-    magnetEnabled = !magnetEnabled;
-    console.log("Magnet flag:", magnetEnabled, "(현재는 A키/버튼으로 실제 정렬)");
-    return;
-  }
+ 
+ 
+ // 스냅
+  if (key === "s") { attachSelectedGroup(); return; }
 
-  if (key === "a") { attachSelectedGroup(); return; }
-  if (key === "c") { cloneSelected(); return; }
   if (e.key === "Delete" || e.key === "Backspace") { deleteSelected(); return; }
-  // ⛔️ 여기 있던 if (key === "k") { groupSelected(); return; } 는 삭제!
+  
 
   if (key === "x") {
     focusOnSelection();
@@ -8376,28 +8516,14 @@ return;
 
 
   
-
-  if (key === "b") {
+// 바닥내리기
+  if (key === "f") {
     e.preventDefault();
     placeSelectionOnGround();
     return;
   }
 
-  if (key === "p") {
-    if (!selectedMesh && selectedSet.size === 0) {
-      console.log("선택된 부속이 없습니다.");
-      return;
-    }
-    const target = selectedMesh || [...selectedSet][0];
-    console.log("==== [P] 선택 부속 포트 디버그 ====");
-    console.log("userData.threadCenters:", target.userData && target.userData.threadCenters);
-    console.log("userData.basePorts:",     target.userData && target.userData.basePorts);
-    console.log("userData.rawThreadCenters:", target.userData && target.userData.rawThreadCenters);
-    const pts = getWorldAttachPointsForMesh(target) || [];
-    console.log("world attach points:", pts);
-    return;
-  }
-
+  
   if (!selectedMesh && selectedSet.size === 0) return;
 
   let moveStep = baseMoveStep;
@@ -8419,7 +8545,7 @@ return;
       translateSelection(0, -moveStep, 0);
       break;
 
-    case "q":
+    /*case "레드":
   saveState();
   targets.forEach(o => o.rotation.y += rotateStep);
   updateRotationGizmo();
@@ -8428,7 +8554,7 @@ return;
   break;
 
 
-    case "e":
+    case "레드":
   saveState();
   targets.forEach(o => o.rotation.y -= rotateStep);
   updateRotationGizmo();
@@ -8437,7 +8563,7 @@ return;
   break;
 
 
-  case "r":
+  case "블루":
   saveState();
   targets.forEach(o => o.rotation.x += rotateStep);
   updateRotationGizmo();
@@ -8446,7 +8572,7 @@ return;
   break;
 
 
-   case "f":
+   case "블루":
   saveState();
   targets.forEach(o => o.rotation.x -= rotateStep);
   updateRotationGizmo();
@@ -8455,7 +8581,7 @@ return;
   break;
 
 
-    case "t":
+    case "그린":
   saveState();
   targets.forEach(o => o.rotation.z += rotateStep);
   updateRotationGizmo();
@@ -8464,17 +8590,17 @@ return;
   break;
 
 
-   case "g":
+   case "그린":
   saveState();
   targets.forEach(o => o.rotation.z -= rotateStep);
   updateRotationGizmo();
   if (dimensionEnabled) showDimensionsForSelection(selectedMesh);
   showRotateHUD("z", targets[0].rotation.z);
-  break;
+  break;*/
 
 
-    // 🔥 K키 토글: 그룹 / 그룹해제
-    case "k":
+    // 🔥 g키 토글: 그룹 / 그룹해제
+    case "g":
   e.preventDefault();
 
   // ✅ 2개 이상 선택이면: 무조건 그룹 만들기
@@ -8635,57 +8761,77 @@ function getPlateUIChosenColor() {
   return (typeof window.__lastPlateColor === "string" && window.__lastPlateColor.trim()) ? window.__lastPlateColor.trim() : null;
 }
 
-// ✅ "선택 판에 적용" 버튼: 투명도 + 색상(컬러피커/마지막 팔레트) 동시에 1번 Undo로 적용
+// ✅ "선택 부속/판에 적용" 버튼: 투명도 + 색상 동시에 적용
 function applyPlateStyleFromUI() {
-  const plates = getSelectedPlates();
-  if (!plates.length) {
-    alert("판(사각/원형)을 선택하세요.");
+  // 1) 선택된 모든 대상(부속 + 판) 가져오기
+  let targets = (selectedSet && selectedSet.size > 0) 
+                ? Array.from(selectedSet) 
+                : (selectedMesh ? [selectedMesh] : []);
+  
+  if (!targets.length) {
+    alert("변경할 부속이나 판을 선택하세요.");
     return;
   }
 
+  // 2) 투명도 값 계산
   const slider = document.getElementById("plateOpacity");
   const label  = document.getElementById("plateOpacityLabel");
   const v = slider ? parseInt(slider.value, 10) : 100;
   const opacity = Math.max(0.05, Math.min(1, (isFinite(v) ? v : 100) / 100));
   if (label && isFinite(v)) label.textContent = `${v}%`;
 
+  // 3) 선택된 색상 가져오기
   const color = getPlateUIChosenColor();
 
-  saveState(); // ✅ Undo 1회
+  // 4) 상태 저장 (Undo용)
+  saveState(); 
 
-  plates.forEach(p => {
+  // 5) 모든 대상에 적용
+  targets.forEach(p => {
+    // 투명도 적용
     setObjectOpacityDeep(p, opacity);
-
+    // 색상 적용
     if (color) {
       setObjectColorDeep(p, color);
       p.userData = p.userData || {};
       p.userData.color = color; // 저장/복원용
     }
   });
+
+  if (typeof render === "function") render();
 }
 
 function applyPlateColor(hex) {
   window.__lastPlateColor = hex;
   const picker = document.getElementById("plateColorPicker");
   if (picker && picker.value !== hex) picker.value = hex;
-  try{ syncPlateSwatchesFromColor(hex); }catch(e){}
-  // ✅ 사각/원형판 모두 포함 + null 안전
-  const plates = getSelectedPlates(); // getSelectedPlates()는 isPlateObject로 거름 :contentReference[oaicite:3]{index=3}
-  if (!plates || plates.length === 0) return;
+  try { syncPlateSwatchesFromColor(hex); } catch(e) {}
 
-  saveState(); // ✅ Undo 1회
+  // ✅ 수정: 판만 가져오는 게 아니라, 현재 선택된 모든 부속(selectedSet)을 가져옵니다.
+  let targets = [];
+  if (selectedSet && selectedSet.size > 0) {
+    targets = Array.from(selectedSet);
+  } else if (selectedMesh) {
+    targets = [selectedMesh];
+  }
 
-  plates.forEach(p => {
-    if (!p) return;
-    setObjectColorDeep(p, hex);  // 판 내부 mesh까지 색 적용 :contentReference[oaicite:4]{index=4}
-    p.userData = p.userData || {};
-    p.userData.color = hex; // 저장/복원용
+  if (targets.length === 0) return;
+
+  saveState(); // ✅ Undo 1회 저장
+
+  targets.forEach(obj => {
+    if (!obj) return;
+    // ✅ 판이든 일반 부속이든 내부 메쉬까지 모두 색상 적용
+    setObjectColorDeep(obj, hex);  
+    
+    obj.userData = obj.userData || {};
+    obj.userData.color = hex; // 저장/복원용 데이터 기록
   });
 
   const preview = document.getElementById("plateColorPreview");
   if (preview) preview.style.background = hex;
-
- 
+  
+  render(); // 화면 갱신
 }
 
 
@@ -8768,15 +8914,17 @@ const PLATE_PALETTE = [
       const pv = document.getElementById("plateColorPreview");
       if (pv) pv.style.background = hex;
 
-      // 실시간 반영(Undo 누적 방지하려면 saveState 없이 색만 반영)
-      const plates = getSelectedPlates();
-      if (!plates.length) return;
-      plates.forEach(p => setObjectColorDeep(p, hex));
-      render();
-    });
+      // ✅ 실시간 반영 대상 수정
+      let targets = [];
+      if (selectedSet && selectedSet.size > 0) {
+        targets = Array.from(selectedSet);
+      } else if (selectedMesh) {
+        targets = [selectedMesh];
+      }
 
-    picker.addEventListener("change", () => {
-      applyPlateColor(picker.value); // ✅ saveState 포함
+      if (!targets.length) return;
+      targets.forEach(obj => setObjectColorDeep(obj, hex));
+      render();
     });
   }
 })();
@@ -9042,6 +9190,66 @@ function resetCamera() {
     }, false);
   }
 });
+
+
+// ✅ 치수 토글 함수 (d키와 버튼 공용)
+window.toggleDimensionUI = function() {
+  if (typeof dimensionEnabled === 'undefined') return; // 변수 없을 경우 방지
+  
+  dimensionEnabled = !dimensionEnabled;
+  if (!dimensionEnabled) {
+    if (typeof hideAllDimensions === "function") hideAllDimensions();
+  } else {
+    if (typeof showDimensionsSmartForSelection === "function") showDimensionsSmartForSelection();
+  }
+};
+
+// ✅ 그룹/해제 함수 (g키와 버튼 공용)
+window.handleGroupKey = function() {
+  if (typeof saveState === "function") saveState();
+  
+  if (selectedSet && selectedSet.size >= 2) {
+    if (typeof groupSelected === "function") groupSelected();
+  } else {
+    if (selectedMesh instanceof THREE.Group) {
+      if (typeof ungroupSelected === "function") ungroupSelected();
+    } else {
+      if (typeof groupSelected === "function") groupSelected();
+    }
+  }
+};
+
+
+
+// ✅ 회전 토글 통합 함수 (조작 후 자동 꺼짐 버전)
+window.handleRotateToggle = function() {
+  // 1. 상태 전환
+  gizmoEnabled = !gizmoEnabled;
+  
+  // 2. 기즈모 업데이트
+  if (typeof updateRotationGizmo === "function") {
+    updateRotationGizmo();
+  }
+
+  // 3. 버튼 색상 업데이트
+  const btn = document.getElementById("rotateBtn");
+  if (btn) {
+    if (gizmoEnabled) {
+      btn.style.color = "#ffeb3b"; 
+      btn.style.border = "1px solid #ffeb3b";
+      
+      // 💡 팁: 회전 버튼을 켰을 때 사용자에게 안내 메시지를 띄울 수도 있습니다.
+      console.log("회전 모드 활성화 - 조작 후 자동 종료됩니다.");
+    } else {
+      btn.style.color = "#61dafb"; 
+      btn.style.border = "none";
+    }
+  }
+};
+
+
+
+
 </script>
 </body>
 </html>
