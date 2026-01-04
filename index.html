@@ -8467,12 +8467,16 @@ return;
 
 
 
-// L : 회전 링 표시 (수정 버전)
-if (!e.ctrlKey && !e.metaKey && key === "l") {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  handleRotateToggle(); // 이제 이 함수가 토글과 색상변경을 모두 처리합니다.
-  return;
-}
+// L : 회전 링 표시
+  if (!e.ctrlKey && !e.metaKey && key === "l") {
+    gizmoEnabled = true;
+    updateRotationGizmo();
+    return;
+  }
+
+
+
+
 
  if (e.ctrlKey || e.metaKey) {
   // ✅ Undo: Ctrl+Z
@@ -9224,31 +9228,68 @@ window.handleGroupKey = function() {
 
 
 
-// ✅ 회전 토글 통합 함수 (조작 후 자동 꺼짐 버전)
-window.handleRotateToggle = function() {
-  // 1. 상태 전환
-  gizmoEnabled = !gizmoEnabled;
-  
-  // 2. 기즈모 업데이트
-  if (typeof updateRotationGizmo === "function") {
+/* ========== 키보드: 이동 + 회전 + 단축키 (원본 복원 버전) ========== */
+window.addEventListener("keydown", (e) => {
+  const key = e.key.toLowerCase();
+
+  // 입력창(채팅 등) 무시
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  // --------------------------------------------------------
+  // ✅ L : 회전 링 표시 (누르고 있을 때만 ON)
+  // --------------------------------------------------------
+  if (key === "l" && !e.ctrlKey && !e.metaKey) {
+    // 꾹 누르고 있을 때 신호가 반복되는 것 방지 (깜빡임 해결)
+    if (e.repeat) return; 
+
+    gizmoEnabled = true;
     updateRotationGizmo();
+    console.log("L키: 회전 모드 ON (Hold)");
+    return;
   }
 
-  // 3. 버튼 색상 업데이트
-  const btn = document.getElementById("rotateBtn");
-  if (btn) {
-    if (gizmoEnabled) {
-      btn.style.color = "#ffeb3b"; 
-      btn.style.border = "1px solid #ffeb3b";
-      
-      // 💡 팁: 회전 버튼을 켰을 때 사용자에게 안내 메시지를 띄울 수도 있습니다.
-      console.log("회전 모드 활성화 - 조작 후 자동 종료됩니다.");
-    } else {
-      btn.style.color = "#61dafb"; 
-      btn.style.border = "none";
-    }
+  // D : 치수 토글
+  if (!e.ctrlKey && !e.metaKey && key === "d") {
+    e.preventDefault();
+    dimensionEnabled = !dimensionEnabled;
+    if (!dimensionEnabled) hideAllDimensions();
+    else showDimensionsSmartForSelection();
+    return;
   }
-};
+
+  // ... (이하 Ctrl+Z, C, V 등 기존 코드 유지)
+  if (e.ctrlKey || e.metaKey) {
+    if (key === "z" && !e.shiftKey) { e.preventDefault(); undo(); return; }
+    if (key === "z" && e.shiftKey) { e.preventDefault(); redo(); return; }
+    if (key === "y") { e.preventDefault(); redo(); return; }
+    if (key === "c") { e.preventDefault(); copySelected(); return; }
+    if (key === "v") { e.preventDefault(); pasteClipboard(); return; }
+    if (key === "a") { e.preventDefault(); selectAll(); return; }
+  }
+
+  // ... (기타 단축키 A, B, X, K 등 유지)
+});
+
+// --------------------------------------------------------
+// ✅ KeyUp : 키에서 손을 뗄 때 (L키 즉시 OFF)
+// --------------------------------------------------------
+window.addEventListener("keyup", (e) => {
+  const key = e.key.toLowerCase();
+
+  if (key === "l") {
+    gizmoEnabled = false;
+    hoveredAxis = null;
+    updateRingHoverVisuals(null);
+    updateRotationGizmo(); // 링 숨기기
+
+    if (dragMode === "rotate") {
+      dragMode = null;
+      dragging = false;
+      if (typeof angleUI !== 'undefined' && angleUI) angleUI.style.display = "none";
+    }
+    console.log("L키: 회전 모드 OFF");
+  }
+});
 
 
 
@@ -9498,6 +9539,14 @@ function padString(str, len) {
   while(l<len) { res+=" "; l++; }
   return res;
 }
+
+
+
+
+
+
+
+
 
 
 
