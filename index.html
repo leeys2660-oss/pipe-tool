@@ -577,7 +577,7 @@ max-height: 95vh;
   <div class="rightGroup">
     <button class="top-btn" onclick="handleGroupKey()" style="color: #61dafb;">Group(G)</button>
   <button class="top-btn" onclick="toggleDimensionUI()" style="color: #61dafb;">Dim(D)</button>
-  <button class="top-btn" id="rotateBtn" onclick="handleRotateToggle()" style="color: #61dafb;">Rotate(L)</button>
+  <!-- <button class="top-btn" id="rotateBtn" onclick="handleRotateToggle()" style="color: #61dafb;">Rotate(L)</button> -->
     <button class="top-btn" onclick="undo()" style="color: #ff7070;">↩</button>
   <button class="top-btn" onclick="redo()" style="color: #ff7070;">↪</button>
 
@@ -585,6 +585,7 @@ max-height: 95vh;
   <button class="top-btn" id="projectBtn" onclick="toggleProjectMenu(event)" style="color: #75acff; font-weight: bold;">📁 PROJECT</button>
   <div class="dropdown-content" id="projectMenu">
     <a href="#" onclick="exportSelectedToSTL()">STL 내보내기</a>
+    <a href="#" onclick="exportBOM()">리스트 내보내기</a>
     <a href="#" onclick="saveProjectJSON()">프로젝트 저장</a>
     <a href="#" onclick="document.getElementById('projectFileInput').click()">프로젝트 불러오기</a>
   </div>
@@ -604,7 +605,7 @@ max-height: 95vh;
 
 <!-- 좌측 UI 패널 -->
 <div id="ui">
-  <div class="ui-title">Auto Pipe Connect</div>
+  <div class="ui-title">Auto Pipe Tool</div>
 <!-- === STL 파일 === -->
   <div class="ui-group">
     <div class="ui-header">🧱 STL 파일</div>
@@ -9249,6 +9250,254 @@ window.handleRotateToggle = function() {
   }
 };
 
+
+
+
+
+
+
+
+
+
+window.exportBOM = function() {
+  try {
+    console.log("🧾 [종류별 분리] 자재 리스트 추출 중...");
+    let targets = [];
+
+    // 1. 화면 선택 객체 수집
+    if (typeof scene !== 'undefined') {
+      scene.traverse((obj) => {
+        if (!obj.visible) return;
+        if (obj.type && (obj.type.includes("Grid") || obj.type.includes("Axis"))) return;
+
+        let isYellow = false;
+        if ((obj.isLine || obj.isLineSegments) && obj.material && obj.material.color) {
+          const { r, g, b } = obj.material.color;
+          if (r > 0.8 && g > 0.8 && b < 0.4) isYellow = true;
+        }
+
+        if (isYellow) {
+          let target = obj.object || obj.parent;
+          if (target && target.isMesh) targets.push(target);
+        }
+      });
+    }
+    
+    targets = [...new Set(targets)];
+
+    if (targets.length === 0) {
+      alert("선택된 자재가 없습니다.");
+      return;
+    }
+
+    // 2. 데이터 분석
+    const bomMap = new Map();
+    const THREAD_OFFSET = 20;
+    const PLATE_UNIT_MULTIPLIER = 100;
+
+    targets.forEach((mesh) => {
+      try {
+        const data = mesh.userData || {};
+        
+        let category = "FITTING"; // 기본값: 부속
+        let finalName = "Unknown Part";
+        let size = "-";
+        let length = "-";
+
+        // ========================================================
+        // [CASE A] 파이프 (PIPE)
+        // ========================================================
+        if (data.isPipe === true) {
+            category = "PIPE";
+            finalName = "Pipe";
+
+            if (data.subKind) size = data.subKind;
+            else if (data.size) size = data.size;
+            else if (data.spec) size = data.spec;
+
+            let rawLength = 0;
+            if (data.lengthMm !== undefined) rawLength = Math.round(Number(data.lengthMm));
+            else if (data.length !== undefined) rawLength = Math.round(Number(data.length));
+            else rawLength = Math.round(mesh.scale.y);
+
+            let sizeStr = String(size || "-").toUpperCase(); 
+            let currentOffset = THREAD_OFFSET;
+            if (sizeStr.includes("12MM") || sizeStr.includes("15MM")) currentOffset = 0;
+
+            if (rawLength > 0) length = (rawLength + currentOffset) + "mm"; 
+        } 
+        // ========================================================
+        // [CASE B] 부속 (FITTING)
+        // ========================================================
+        else if (data.isFitting === true) {
+            category = "FITTING";
+            
+            const kind = (data.kind || "").toLowerCase();
+            const subKind = (data.subKind || "").toLowerCase();
+
+            if (kind.includes("cross")) finalName = "Cross Tee";
+            else if (kind.includes("elbow") || kind.includes("90")) {
+                if (kind.includes("45") || subKind.includes("45")) finalName = "Elbow 45°";
+                else if (kind.includes("s_o") || subKind.includes("s_o") || subKind === "so") finalName = "S.O. Elbow";
+                else finalName = "Elbow 90°";
+            }
+            else if (kind.includes("tee")) {
+                if (kind.includes("s_o") || subKind.includes("s_o") || subKind === "so") finalName = "S.O. Tee";
+                else finalName = "Tee";
+            }
+            else if (kind.includes("cap")) finalName = "Cap";
+            else if (kind.includes("reduce")) finalName = "Reducer";
+            else if (kind.includes("socket")) finalName = "Socket";
+            else if (kind.includes("flange")) finalName = "Flange";
+            else if (kind.includes("union")) finalName = "Union";
+            else if (kind.includes("bush")) finalName = "Bushing";
+            else if (kind.includes("nipple")) finalName = "Nipple";
+            else if (kind.includes("plug")) finalName = "Plug";
+            else finalName = data.name || mesh.name || "Fitting";
+
+            if (data.size) size = data.size;
+            else if (data.spec) size = data.spec;
+
+            if ((!size || size === "-") && data.subKind) {
+                if (subKind !== "so" && subKind !== "s_o") size = data.subKind;
+            }
+
+            if (!size || size === "-" || size === "SO" || size === "S_O") {
+                const fullText = (mesh.name + " " + (data.name||"") + " " + (data.stlName||"")).toUpperCase();
+                const matchA = fullText.match(/([0-9]+)A/); 
+                if (matchA) size = matchA[0];
+                else {
+                    const matchMM = fullText.match(/([0-9]+)MM/);
+                    if (matchMM) size = matchMM[0];
+                }
+            }
+            
+            if (finalName === "Reducer" || finalName === "Bushing") {
+                const searchStr = (data.subKind + " " + mesh.name + " " + (data.name||"") + " " + (data.stlName||"")).toUpperCase();
+                const multiSizeMatch = searchStr.match(/([0-9]+)[A]?[\s\*xX]+([0-9]+)[A]?/);
+                if (multiSizeMatch) {
+                    size = `${multiSizeMatch[1]}A*${multiSizeMatch[2]}A`;
+                }
+            }
+            length = "-";
+        }
+        // ========================================================
+        // [CASE C] 판재 (PLATE)
+        // ========================================================
+        else {
+            let isPlateName = mesh.name.toUpperCase().includes("PLATE") || mesh.name.includes("판") || data.isPlate === true;
+            let isBox = mesh.geometry && mesh.geometry.type.includes("Box");
+            let isCylinder = mesh.geometry && mesh.geometry.type.includes("Cylinder");
+
+            if (isPlateName || isBox || isCylinder) {
+                category = "PLATE"; // 판재 카테고리 설정
+
+                if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+                const box = mesh.geometry.boundingBox;
+                
+                // 단위 보정 (x100)
+                const dimX = Math.abs((box.max.x - box.min.x) * mesh.scale.x) * PLATE_UNIT_MULTIPLIER;
+                const dimY = Math.abs((box.max.y - box.min.y) * mesh.scale.y) * PLATE_UNIT_MULTIPLIER;
+                const dimZ = Math.abs((box.max.z - box.min.z) * mesh.scale.z) * PLATE_UNIT_MULTIPLIER;
+
+                const dims = [dimX, dimY, dimZ].sort((a, b) => a - b);
+                
+                const thickness = Math.round(dims[0]);
+                const mid = Math.round(dims[1]);
+                const max = Math.round(dims[2]);
+
+                if (isCylinder) {
+                    finalName = "Circular Plate";
+                    size = `${max},${thickness}`; 
+                } else {
+                    finalName = "Rectangular Plate";
+                    size = `${max},${mid},${thickness}`;
+                }
+                length = "-";
+            } 
+            else {
+                // 정말 모르는 물건 -> 그냥 부속(Fitting)으로 분류
+                category = "FITTING";
+                finalName = mesh.name || "Unknown Object";
+            }
+        }
+
+        // --- 데이터 정리 ---
+        size = String(size).toUpperCase();
+        if (size === "UNDEFINED" || size === "NULL") size = "-";
+        size = size.replace("S_O_", "").replace("SO_", "").trim();
+
+        // Map에 저장할 때 카테고리 정보도 포함
+        const key = `${category}|${finalName}|${size}|${length}`;
+        if (bomMap.has(key)) bomMap.get(key).count++;
+        else bomMap.set(key, { category: category, name: finalName, size: size, length: length, count: 1 });
+
+      } catch (innerError) {
+        console.error("오류 무시:", innerError);
+      }
+    });
+
+    // 3. 출력 생성 (분리형)
+    let textOutput = "========================================================\n";
+    textOutput += "              [ 자재 리스트 ]              \n";
+    textOutput += "========================================================\n";
+    textOutput += `작성일: ${new Date().toLocaleString()}\n`;
+   
+
+    // 카테고리별 필터링
+    const items = [...bomMap.values()];
+    const fittings = items.filter(i => i.category === "FITTING");
+    const pipes    = items.filter(i => i.category === "PIPE");
+    const plates   = items.filter(i => i.category === "PLATE");
+
+    // 표 그리기 함수
+    function drawTable(title, list) {
+        if (list.length === 0) return "";
+        let out = `\n[ ${title} ]\n`;
+        out += "+---------------------------+---------------+----------+------+\n";
+        out += "| 부속 이름 (Part Name)     | 규격          | 길이     | 수량 |\n";
+        out += "+---------------------------+---------------+----------+------+\n";
+        
+        // 정렬: 이름순
+        list.sort((a,b) => a.name.localeCompare(b.name));
+
+        list.forEach(item => {
+             let dName = padString(item.name, 25);
+             let dSize = padString(item.size, 13);
+             let dLen  = padString(item.length, 8);
+             let dQty  = item.count.toString().padEnd(4, ' ');
+             out += `| ${dName} | ${dSize} | ${dLen} | ${dQty} |\n`;
+        });
+        out += "+---------------------------+---------------+----------+------+\n";
+        return out;
+    }
+
+    // 순서대로 출력
+    textOutput += drawTable("1. 배관 부속 (Fittings)", fittings);
+    textOutput += drawTable("2. 파이프 (Pipes)", pipes);
+    textOutput += drawTable("3. 판재 (Plates)", plates);
+
+    // 파일 다운로드
+    const blob = new Blob([textOutput], { type: "text/plain;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "ETE_BOM_List_Separated.txt";
+    link.click();
+
+  } catch (err) {
+    alert("오류 발생: " + err.message);
+  }
+};
+
+// 글자 길이 맞춤 함수
+function padString(str, len) {
+  str = String(str);
+  let l = 0;
+  for(let i=0; i<str.length; i++) l += (str.charCodeAt(i)>128)?2:1;
+  let res = str;
+  while(l<len) { res+=" "; l++; }
+  return res;
+}
 
 
 
