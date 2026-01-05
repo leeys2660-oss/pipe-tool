@@ -548,12 +548,12 @@ max-height: 95vh;
 <div id="topViewBar">
   <!-- 왼쪽: 뷰 전환 -->
   <div class="leftGroup">
-  <button class="top-btn" onclick="setView('front')" style="color: #91f17e;">FRONT(1)</button>
-  <button class="top-btn" onclick="setView('back')" style="color: #91f17e;">BACK(2)</button>
-  <button class="top-btn" onclick="setView('left')" style="color: #91f17e;">LEFT(3)</button>
-  <button class="top-btn" onclick="setView('right')" style="color: #91f17e;">RIGHT(4)</button>
-  <button class="top-btn" onclick="setView('top')" style="color: #91f17e;">TOP(5)</button>
-  <button class="top-btn" onclick="focusOnSelection()" style="color: #91f17e;">Select View(6)</button>
+  <button class="top-btn" onclick="setView('front')" style="color: #91f17e;">Front(1)</button>
+  <button class="top-btn" onclick="setView('back')" style="color: #91f17e;">Back(2)</button>
+  <button class="top-btn" onclick="setView('left')" style="color: #91f17e;">Letf(3)</button>
+  <button class="top-btn" onclick="setView('right')" style="color: #91f17e;">Rigth(4)</button>
+  <button class="top-btn" onclick="setView('top')" style="color: #91f17e;">Top(5)</button>
+  <button class="top-btn" onclick="focusOnSelection()" style="color: #91f17e;">Focus(6)</button>
   <button class="top-btn" onclick="resetCamera()" style="color: #91f17e;">V-Reset(7)</button>
 
 
@@ -561,13 +561,13 @@ max-height: 95vh;
 
  <!-- 중앙: 정렬 -->
 <div class="centerGroup">
-  <button class="top-btn" onclick="attachSelectedGroup()" style="color: #e3eb7b;">SNAP(S)</button>
-  <button class="top-btn" onclick="placeSelectionOnGround()" style="color: #e3eb7b;">FLOOR(F)</button>
-  <button class="top-btn" onclick="alignSelectionAxis('z')" style="color: #e3eb7b;">RED</button>
-  <button class="top-btn" onclick="alignSelectionAxis('x')" style="color: #e3eb7b;">BLUE</button>
-  <button class="top-btn" onclick="alignSelectionAxis('y')" style="color: #e3eb7b;">TOP</button>
-  <button class="top-btn" onclick="alignSelectionToAnchorCenter({axes:'xyz'})" style="color: #e3eb7b;">CENTER</button>
-  <button class="top-btn" onclick="snapPlateToPillarsTop()" style="color: #e3eb7b;">ETE</button>
+  <button class="top-btn" onclick="attachSelectedGroup()" style="color: #e3eb7b;">Snap(S)</button>
+  <button class="top-btn" onclick="placeSelectionOnGround()" style="color: #e3eb7b;">Floor(F)</button>
+  <button class="top-btn" onclick="alignSelectionAxis('z')" style="color: #e3eb7b;">Red</button>
+  <button class="top-btn" onclick="alignSelectionAxis('x')" style="color: #e3eb7b;">Blue</button>
+  <button class="top-btn" onclick="alignSelectionAxis('y')" style="color: #e3eb7b;">Top</button>
+  <button class="top-btn" onclick="alignSelectionToAnchorCenter({axes:'xyz'})" style="color: #e3eb7b;">Center</button>
+  <button class="top-btn" onclick="snapPlateToPillarsTop()" style="color: #e3eb7b;">E.T.E</button>
 </div>
 
 
@@ -650,27 +650,27 @@ max-height: 95vh;
   <hr class="ui-divider">
 
   <div class="grid-2">
-    <button onclick="spawnSocket()" style="color: #ffffff;">소켓</button>
-<button onclick="spawnElbow()" style="color: #ffffff;">90°엘보</button>
-<button onclick="spawn45Elbow()" style="color: #ffffff;">45°엘보</button>
-<button onclick="spawnSOElbow()" style="color: #ffffff;">S.O.엘보</button>
+    <button onclick="spawnSocket()" style="color: #ffffff;">Socket</button>
+<button onclick="spawnElbow()" style="color: #ffffff;">90°Elbow</button>
+<button onclick="spawn45Elbow()" style="color: #ffffff;">45°Elbow</button>
+<button onclick="spawnSOElbow()" style="color: #ffffff;">S.O.Elbow</button>
 
-<button onclick="spawnTee()" style="color: #ffffff;">티</button>
-<button onclick="spawnCrossTee()" style="color: #ffffff;">크로스 티</button>
-<button onclick="spawnSOTee()" style="color: #ffffff;">S.O.티</button>
+<button onclick="spawnTee()" style="color: #ffffff;">Tee</button>
+<button onclick="spawnCrossTee()" style="color: #ffffff;">Cross Tee</button>
+<button onclick="spawnSOTee()" style="color: #ffffff;">S.O.Tee</button>
 
-<button onclick="spawnCap()" style="color: #ffffff;">캡</button>
-<button onclick="spawnPlug()" style="color: #ffffff;">플러그</button>
+<button onclick="spawnCap()" style="color: #ffffff;">Cap</button>
+<button onclick="spawnPlug()" style="color: #ffffff;">Plug</button>
 
-<button onclick="spawnUnion()" style="color: #ffffff;">유니온</button>
-<button onclick="spawnFlange()" style="color: #ffffff;">플랜지</button>
+<button onclick="spawnUnion()" style="color: #ffffff;">Union</button>
+<button onclick="spawnFlange()" style="color: #ffffff;">Flange</button>
 
-<button onclick="spawnReducer()" style="color: #ffffff;">레듀서</button> 
-<button onclick="spawnBushing()" style="color: #ffffff;">부싱</button>
+<button onclick="spawnReducer()" style="color: #ffffff;">Reducer</button> 
+<button onclick="spawnBushing()" style="color: #ffffff;">Bushing</button>
     </div>
 </div>
 <div class="ui-group">
-  <div class="ui-header">콤비락</div>
+  <div class="ui-header">Module</div>
 
   <div class="grid-2">
 <button onclick="addMmCubeFitting(12)" style="color: #9ab2ff;">12mm</button>
@@ -714,7 +714,7 @@ max-height: 95vh;
 
   <div>
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <div style="opacity:0.85; font-size:12px;">판 투명도</div>
+      <div style="opacity:0.85; font-size:12px;">투명도</div>
       <div id="plateOpacityLabel" style="font-size:12px;">100%</div>
     </div>
     <input id="plateOpacity" type="range" min="5" max="100" value="100" style="width:100%;">
@@ -725,13 +725,20 @@ max-height: 95vh;
 
   <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
     <b></b>
-    <button onclick="applyPlateStyleFromUI()">선택 적용</button>
+    <button onclick="applyPlateStyleFromUI()" style="
+    display: inline-flex;
+    align-items: center;    /* 세로 중앙 정렬 */
+    justify-content: center; /* 가로 중앙 정렬 */
+    text-align: center;
+    padding: 0 10px;        /* 좌우 여백만 줌 */
+    height: 30px;           /* 높이가 있다면 수치가 있어도 중앙에 옴 */
+">Apply</button>
   </div>
 
   <hr style="border:none; border-top:1px solid rgba(255,255,255,0.12); margin:10px 0;">
 
   <div>
-    <div style="opacity:0.85; font-size:12px; margin-bottom:6px;">컬러</div>
+    <div style="opacity:0.85; font-size:12px; margin-bottom:6px;">Color</div>
 
 
 
@@ -9256,6 +9263,7 @@ document.addEventListener('keydown', function(event) {
         case '5':
             setView('top');   // 5번 키 -> TOP
             break;
+        
     }
 });
 
@@ -9305,7 +9313,7 @@ window.addEventListener("keydown", (e) => {
   }
 
 
-// ✅ 3. 회전 링 켜기 (L) - 이 부분이 빠져있어서 안 됐던 것입니다.
+// ✅ 3. 회전 링 켜기 (L) 
     if (key === "r") {
         if (e.repeat) return; // 꾹 누름 방지
         gizmoEnabled = true;
@@ -9331,12 +9339,12 @@ window.addEventListener("keydown", (e) => {
     // 스냅  
     if (key === "s") { attachSelectedGroup(); return; }
 
-    // 선택보기  
+    // Focus  
     if (key === "6") { focusOnSelection(); return; }
 
     
     // 바닥정렬 
-    if (key === "f" || key === "b") { e.preventDefault(); placeSelectionOnGround(); return; }
+    if (key === "f") { e.preventDefault(); placeSelectionOnGround(); return; }
 
     // --- 이하 선택된 대상이 있을 때만 작동 ---
     if (!selectedMesh && selectedSet.size === 0) return;
