@@ -547,21 +547,21 @@ max-height: 95vh;
 <div id="topViewBar">
   <!-- 왼쪽: 뷰 전환 -->
   <div class="leftGroup">
-  <button class="top-btn" onclick="setView('front')" style="color: #91f17e;">FRONT</button>
-  <button class="top-btn" onclick="setView('back')" style="color: #91f17e;">BACK</button>
-  <button class="top-btn" onclick="setView('left')" style="color: #91f17e;">LEFT</button>
-  <button class="top-btn" onclick="setView('right')" style="color: #91f17e;">RIGHT</button>
-  <button class="top-btn" onclick="setView('top')" style="color: #91f17e;">TOP</button>
-  <button class="top-btn" onclick="focusOnSelection()" style="color: #91f17e;">(X)Select View</button>
-  <button class="top-btn" onclick="resetCamera()" style="color: #91f17e;">(R)V-Reset</button>
+  <button class="top-btn" onclick="setView('front')" style="color: #91f17e;">FRONT(1)</button>
+  <button class="top-btn" onclick="setView('back')" style="color: #91f17e;">BACK(2)</button>
+  <button class="top-btn" onclick="setView('left')" style="color: #91f17e;">LEFT(3)</button>
+  <button class="top-btn" onclick="setView('right')" style="color: #91f17e;">RIGHT(4)</button>
+  <button class="top-btn" onclick="setView('top')" style="color: #91f17e;">TOP(5)</button>
+  <button class="top-btn" onclick="focusOnSelection()" style="color: #91f17e;">Select View(6)</button>
+  <button class="top-btn" onclick="resetCamera()" style="color: #91f17e;">V-Reset(7)</button>
 
 
   </div>
 
  <!-- 중앙: 정렬 -->
 <div class="centerGroup">
-  <button class="top-btn" onclick="attachSelectedGroup()" style="color: #e3eb7b;">(S)SNAP</button>
-  <button class="top-btn" onclick="placeSelectionOnGround()" style="color: #e3eb7b;">(F)FLOOR</button>
+  <button class="top-btn" onclick="attachSelectedGroup()" style="color: #e3eb7b;">SNAP(S)</button>
+  <button class="top-btn" onclick="placeSelectionOnGround()" style="color: #e3eb7b;">FLOOR(F)</button>
   <button class="top-btn" onclick="alignSelectionAxis('z')" style="color: #e3eb7b;">RED</button>
   <button class="top-btn" onclick="alignSelectionAxis('x')" style="color: #e3eb7b;">BLUE</button>
   <button class="top-btn" onclick="alignSelectionAxis('y')" style="color: #e3eb7b;">TOP</button>
@@ -577,7 +577,9 @@ max-height: 95vh;
   <div class="rightGroup">
     <button class="top-btn" onclick="handleGroupKey()" style="color: #61dafb;">Group(G)</button>
   <button class="top-btn" onclick="toggleDimensionUI()" style="color: #61dafb;">Dim(D)</button>
-  <!-- <button class="top-btn" id="rotateBtn" onclick="handleRotateToggle()" style="color: #61dafb;">Rotate(L)</button> -->
+  <button class="top-btn" onclick="gizmoEnabled=!gizmoEnabled; updateRotationGizmo();"  style="color: #61dafb;">Rotate(R)</button>
+
+
     <button class="top-btn" onclick="undo()" style="color: #ff7070;">↩</button>
   <button class="top-btn" onclick="redo()" style="color: #ff7070;">↪</button>
 
@@ -647,27 +649,27 @@ max-height: 95vh;
   <hr class="ui-divider">
 
   <div class="grid-2">
-    <button onclick="spawnSocket()" style="color: #ffffff;">Socket</button>
-<button onclick="spawnElbow()" style="color: #ffffff;">90°Elbow</button>
-<button onclick="spawn45Elbow()" style="color: #ffffff;">45°Elbow</button>
-<button onclick="spawnSOElbow()" style="color: #ffffff;">S.O.Elbow</button>
+    <button onclick="spawnSocket()" style="color: #ffffff;">소켓</button>
+<button onclick="spawnElbow()" style="color: #ffffff;">90°엘보</button>
+<button onclick="spawn45Elbow()" style="color: #ffffff;">45°엘보</button>
+<button onclick="spawnSOElbow()" style="color: #ffffff;">S.O.엘보</button>
 
-<button onclick="spawnTee()" style="color: #ffffff;">Tee</button>
-<button onclick="spawnCrossTee()" style="color: #ffffff;">CrossTee</button>
-<button onclick="spawnSOTee()" style="color: #ffffff;">S.O.Tee</button>
+<button onclick="spawnTee()" style="color: #ffffff;">티</button>
+<button onclick="spawnCrossTee()" style="color: #ffffff;">크로스 티</button>
+<button onclick="spawnSOTee()" style="color: #ffffff;">S.O.티</button>
 
-<button onclick="spawnCap()" style="color: #ffffff;">Cap</button>
-<button onclick="spawnPlug()" style="color: #ffffff;">Plug</button>
+<button onclick="spawnCap()" style="color: #ffffff;">캡</button>
+<button onclick="spawnPlug()" style="color: #ffffff;">플러그</button>
 
-<button onclick="spawnUnion()" style="color: #ffffff;">Union</button>
-<button onclick="spawnFlange()" style="color: #ffffff;">Flange</button>
+<button onclick="spawnUnion()" style="color: #ffffff;">유니온</button>
+<button onclick="spawnFlange()" style="color: #ffffff;">플랜지</button>
 
-<button onclick="spawnReducer()" style="color: #ffffff;">Reducer</button> 
-<button onclick="spawnBushing()" style="color: #ffffff;">Bushing</button>
+<button onclick="spawnReducer()" style="color: #ffffff;">레듀서</button> 
+<button onclick="spawnBushing()" style="color: #ffffff;">부싱</button>
     </div>
 </div>
 <div class="ui-group">
-  <div class="ui-header">Module</div>
+  <div class="ui-header">콤비락</div>
 
   <div class="grid-2">
 <button onclick="addMmCubeFitting(12)" style="color: #9ab2ff;">12mm</button>
@@ -711,7 +713,7 @@ max-height: 95vh;
 
   <div>
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <div style="opacity:0.85; font-size:12px;">투명도</div>
+      <div style="opacity:0.85; font-size:12px;">판 투명도</div>
       <div id="plateOpacityLabel" style="font-size:12px;">100%</div>
     </div>
     <input id="plateOpacity" type="range" min="5" max="100" value="100" style="width:100%;">
@@ -722,13 +724,13 @@ max-height: 95vh;
 
   <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
     <b></b>
-    <button onclick="applyPlateStyleFromUI()">Apply</button>
+    <button onclick="applyPlateStyleFromUI()">선택 적용</button>
   </div>
 
   <hr style="border:none; border-top:1px solid rgba(255,255,255,0.12); margin:10px 0;">
 
   <div>
-    <div style="opacity:0.85; font-size:12px; margin-bottom:6px;">Color</div>
+    <div style="opacity:0.85; font-size:12px; margin-bottom:6px;">컬러</div>
 
 
 
@@ -2764,53 +2766,53 @@ const redoStack = [];
 const UNDO_LIMIT = 30;
 let clipboardList = [];
 
-// ✅ Ctrl+C : 선택 복사
+/* ========== 복사(Ctrl+C) / 붙여넣기(Ctrl+V) 로직 수정 ========== */
+
+// 1. 선택 복사
 function copySelected() {
   const targets = selectedSet.size > 0 ? [...selectedSet] : (selectedMesh ? [selectedMesh] : []);
   if (targets.length === 0) return;
 
+  // ✅ 기존 클립보드를 비우고 새로 담습니다.
   clipboardList = targets.map(src => {
-    // ✅ 복사 순간에만 점선 제거 → clone에 같이 딸려가는 문제 방지
+    // 점선(윤곽선)이 같이 복제되지 않도록 잠시 해제 후 복제
     const wasSelected = selectedSet.has(src);
     if (wasSelected) unmarkSelected(src);
 
     const clone = src.clone(true);
-    clone.userData = { ...(src.userData || {}) };
+    clone.userData = JSON.parse(JSON.stringify(src.userData)); // 깊은 복사로 데이터 분리
 
-    // clone에 혹시 남아있을 점선/흔적도 제거
+    // 점선 잔재 제거
     stripSelectionOutlineDeep(clone);
-
-    makeMaterialsUnique(clone);
-
+    
     // 원본 점선 복구
     if (wasSelected) markSelected(src);
 
     return clone;
   });
 
-  console.log("Copied:", clipboardList.length);
+  console.log("복사 완료:", clipboardList.length);
 }
 
-
-// ✅ Ctrl+V : 붙여넣기 (살짝 옆으로)
+// 2. 붙여넣기
 function pasteClipboard() {
   if (!clipboardList || clipboardList.length === 0) return;
 
-  saveState();
-
-  clearAllSelection();
+  saveState(); // Undo 저장
+  clearAllSelection(); // 기존 선택 해제 (중복 복사 방지 핵심)
 
   let last = null;
-  clipboardList.forEach(srcClone => {
+  
+  // ✅ 새 리스트를 순회하며 씬에 추가
+  const newItems = clipboardList.map(srcClone => {
     const clone = srcClone.clone(true);
-    clone.userData = { ...(srcClone.userData || {}) };
+    clone.userData = JSON.parse(JSON.stringify(srcClone.userData));
+    
     makeMaterialsUnique(clone);
-stripSelectionOutlineDeep(clone);
+    stripSelectionOutlineDeep(clone);
 
-makeMaterialsUnique(clone);
-
-    // 살짝 이동해서 보이게
-    clone.position.add(new THREE.Vector3(0.3, 0, 0.3));
+    // 원본 위치에서 살짝 이동시켜 겹침 방지
+    clone.position.add(new THREE.Vector3(0.5, 0, 0.5));
 
     scene.add(clone);
     draggable.push(clone);
@@ -2818,11 +2820,16 @@ makeMaterialsUnique(clone);
     selectedSet.add(clone);
     markSelected(clone);
     last = clone;
+    return clone;
   });
 
+  // ✅ [중요] 붙여넣은 직후 클립보드를 비우고 싶다면 아래 주석을 해제하세요.
+  // 만약 계속 '연속 붙여넣기'를 하고 싶다면 이대로 둡니다.
+  // clipboardList = []; 
+
   selectedMesh = last;
-  setSelectedObject(selectedMesh);
   updateRotationGizmo();
+  console.log("붙여넣기 완료");
 }
 
 // ✅ Ctrl+A : 전체 선택
@@ -3996,7 +4003,7 @@ window.spawnProcedural45Elbow15A = function() {
   const MM_PER_UNIT = 100;
 
   // 1. 규격 설정 (15A)
-  const ELBOW_RADIUS_MM = 23; 
+  const ELBOW_RADIUS_MM = 35; 
   const BODY_DIA_MM = 27;     
   const BAND_DIA_MM = 31;     
   const BAND_HEIGHT_MM = 8;   
@@ -7943,7 +7950,7 @@ function focusOnSelection() {
 
 
 
-/* ========== 터치 지원 추가 ========== */
+/* ========== 모바일터치 지원 추가 ========== */
 /* ========== 터치 지원 추가 (기존 마우스 로직 연결) ========== */
 canvas.addEventListener("touchstart", (e) => {
   if (e.touches.length === 1) {
@@ -7976,6 +7983,9 @@ canvas.addEventListener("touchend", (e) => {
   const mouseEvent = new MouseEvent("mouseup", {});
   window.dispatchEvent(mouseEvent);
 }, { passive: false });
+
+
+
 
 
 /* ========== 마우스 이벤트 ========== */
@@ -8253,9 +8263,6 @@ window.addEventListener("mousemove", e=>{
 
 
 
-
-
-
   } else if (dragMode === "move" && (selectedMesh || selectedSet.size > 0)) {
     // ✅ [수정됨] 화면 기준 이동 (어디서든 감도 일정)
     
@@ -8423,255 +8430,6 @@ window.addEventListener("wheel", (e) => {
 
 
 
-
-/* ========== 키보드: 이동 + 회전 + 단축키 ========== */
-window.addEventListener("keydown", (e) => {
-  const key = e.key.toLowerCase();
-
-// ✅ 시점 초기화 단축키 (숫자 0) - 강제 리셋 버전
-if (key === "r" ) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    
-    console.log("시점 초기화 작동 시도");
-
-    // 1. 만약 다른 이름의 함수일 경우를 대비해 가장 흔한 이름들 다 체크
-    const resetFunc = window.resetView || window.initView || window.resetCamera;
-    
-    if (typeof resetFunc === "function") {
-        resetFunc();
-        console.log("기존 함수로 리셋 완료");
-    } 
-    // 2. 함수가 없으면 컨트롤러 자체를 강제 리셋 (대부분의 Three.js 프로젝트 해당)
-    else if (window.controls) {
-        window.controls.reset(); 
-        // controls.reset()이 작동 안 할 경우를 대비한 좌표 강제 대입
-        if (window.camera) {
-            window.camera.position.set(500, 500, 500); // 보통 초기 카메라 위치
-            window.controls.update();
-        }
-        console.log("컨트롤러 강제 리셋 완료");
-    }
-    return;
-}
-
-
-// ✅ D : 치수 토글
-if (!e.ctrlKey && !e.metaKey && key === "d") {
-  e.preventDefault();
-  dimensionEnabled = !dimensionEnabled;
-if (!dimensionEnabled) hideAllDimensions();
-else showDimensionsSmartForSelection();
-return;
-
-}
-
-
-
-// L : 회전 링 표시
-  if (!e.ctrlKey && !e.metaKey && key === "l") {
-    gizmoEnabled = true;
-    updateRotationGizmo();
-    return;
-  }
-
-
-
-
-
- if (e.ctrlKey || e.metaKey) {
-  // ✅ Undo: Ctrl+Z
-  if (key === "z" && !e.shiftKey) {
-    e.preventDefault();
-    undo();
-    return;
-  }
-
-  // ✅ Redo: Ctrl+Shift+Z
-  if (key === "z" && e.shiftKey) {
-    e.preventDefault();
-    redo();
-    return;
-  }
-
-  // ✅ Redo: Ctrl+Y
-  if (key === "y") {
-    e.preventDefault();
-    redo();
-    return;
-  }
-
-  // ✅ Copy / Paste / SelectAll
-  if (key === "c") { e.preventDefault(); copySelected(); return; }
-  if (key === "v") { e.preventDefault(); pasteClipboard(); return; }
-  if (key === "a") { e.preventDefault(); selectAll(); return; }
-}
-
-
-
- 
- 
- // 스냅
-  if (key === "s") { attachSelectedGroup(); return; }
-
-  if (e.key === "Delete" || e.key === "Backspace") { deleteSelected(); return; }
-  
-
-  if (key === "x") {
-    focusOnSelection();
-    return;
-  }
-
-
-  
-// 바닥내리기
-  if (key === "f") {
-    e.preventDefault();
-    placeSelectionOnGround();
-    return;
-  }
-
-  
-  if (!selectedMesh && selectedSet.size === 0) return;
-
-  let moveStep = baseMoveStep;
-  if (e.shiftKey) moveStep *= 5;
-
-  const rotateStep = THREE.MathUtils.degToRad(15);
-  const targets = selectedSet.size > 0 ? [...selectedSet] : [selectedMesh];
-
-  switch(key) {
-    case "+":
-      e.preventDefault();
-      saveState();
-      translateSelection(0, moveStep, 0);
-      break;
-
-    case "-":
-      e.preventDefault();
-      saveState();
-      translateSelection(0, -moveStep, 0);
-      break;
-
-    /*case "레드":
-  saveState();
-  targets.forEach(o => o.rotation.y += rotateStep);
-  updateRotationGizmo();
-  if (dimensionEnabled) showDimensionsForSelection(selectedMesh);
-  showRotateHUD("y", targets[0].rotation.y);
-  break;
-
-
-    case "레드":
-  saveState();
-  targets.forEach(o => o.rotation.y -= rotateStep);
-  updateRotationGizmo();
-  if (dimensionEnabled) showDimensionsForSelection(selectedMesh);
-  showRotateHUD("y", targets[0].rotation.y);
-  break;
-
-
-  case "블루":
-  saveState();
-  targets.forEach(o => o.rotation.x += rotateStep);
-  updateRotationGizmo();
-  if (dimensionEnabled) showDimensionsForSelection(selectedMesh);
-  showRotateHUD("x", targets[0].rotation.x);
-  break;
-
-
-   case "블루":
-  saveState();
-  targets.forEach(o => o.rotation.x -= rotateStep);
-  updateRotationGizmo();
-  if (dimensionEnabled) showDimensionsForSelection(selectedMesh);
-  showRotateHUD("x", targets[0].rotation.x);
-  break;
-
-
-    case "그린":
-  saveState();
-  targets.forEach(o => o.rotation.z += rotateStep);
-  updateRotationGizmo();
-  if (dimensionEnabled) showDimensionsForSelection(selectedMesh);
-  showRotateHUD("z", targets[0].rotation.z);
-  break;
-
-
-   case "그린":
-  saveState();
-  targets.forEach(o => o.rotation.z -= rotateStep);
-  updateRotationGizmo();
-  if (dimensionEnabled) showDimensionsForSelection(selectedMesh);
-  showRotateHUD("z", targets[0].rotation.z);
-  break;*/
-
-
-    // 🔥 g키 토글: 그룹 / 그룹해제
-    case "g":
-  e.preventDefault();
-
-  // ✅ 2개 이상 선택이면: 무조건 그룹 만들기
-  if (selectedSet.size >= 2) {
-    groupSelected();
-  } else {
-    // ✅ 1개만 선택이면: 그룹이면 해제 / 아니면(단일 메시) 그룹 시도
-    if (selectedMesh instanceof THREE.Group) ungroupSelected();
-    else groupSelected();
-  }
-  break;
-
-
-
-
-
-
-    case "arrowleft":
-      e.preventDefault();
-      saveState();
-      // 화면 기준 왼쪽
-      moveSelectionViewRelative(-moveStep, 0);
-      break;
-
-    case "arrowright":
-      e.preventDefault();
-      saveState();
-      // 화면 기준 오른쪽
-      moveSelectionViewRelative(moveStep, 0);
-      break;
-
-    case "arrowup":
-      e.preventDefault();
-      saveState();
-      // 화면 기준 위/앞쪽
-      moveSelectionViewRelative(0, moveStep);
-      break;
-
-    case "arrowdown":
-      e.preventDefault();
-      saveState();
-      // 화면 기준 아래/뒤쪽
-      moveSelectionViewRelative(0, -moveStep);
-      break;
-  }
-  
-});
-
-
-window.addEventListener("keyup", (e) => {
-  const key = e.key.toLowerCase();
-  if (key === "l") {
-    gizmoEnabled = false;
-    hoveredAxis = null;
-    updateRingHoverVisuals(null);
-    updateRotationGizmo();
-
-    if (dragMode === "rotate") {
-      dragMode = null;
-      dragging = false;
-      if (angleUI) angleUI.style.display = "none";
-    }
-  }
-});
 
 /* ========== 렌더 루프 & 리사이즈 ========== */
 function animate(){
@@ -9211,6 +8969,8 @@ window.toggleDimensionUI = function() {
   }
 };
 
+
+
 // ✅ 그룹/해제 함수 (g키와 버튼 공용)
 window.handleGroupKey = function() {
   if (typeof saveState === "function") saveState();
@@ -9225,74 +8985,6 @@ window.handleGroupKey = function() {
     }
   }
 };
-
-
-
-/* ========== 키보드: 이동 + 회전 + 단축키 (원본 복원 버전) ========== */
-window.addEventListener("keydown", (e) => {
-  const key = e.key.toLowerCase();
-
-  // 입력창(채팅 등) 무시
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-  // --------------------------------------------------------
-  // ✅ L : 회전 링 표시 (누르고 있을 때만 ON)
-  // --------------------------------------------------------
-  if (key === "l" && !e.ctrlKey && !e.metaKey) {
-    // 꾹 누르고 있을 때 신호가 반복되는 것 방지 (깜빡임 해결)
-    if (e.repeat) return; 
-
-    gizmoEnabled = true;
-    updateRotationGizmo();
-    console.log("L키: 회전 모드 ON (Hold)");
-    return;
-  }
-
-  // D : 치수 토글
-  if (!e.ctrlKey && !e.metaKey && key === "d") {
-    e.preventDefault();
-    dimensionEnabled = !dimensionEnabled;
-    if (!dimensionEnabled) hideAllDimensions();
-    else showDimensionsSmartForSelection();
-    return;
-  }
-
-  // ... (이하 Ctrl+Z, C, V 등 기존 코드 유지)
-  if (e.ctrlKey || e.metaKey) {
-    if (key === "z" && !e.shiftKey) { e.preventDefault(); undo(); return; }
-    if (key === "z" && e.shiftKey) { e.preventDefault(); redo(); return; }
-    if (key === "y") { e.preventDefault(); redo(); return; }
-    if (key === "c") { e.preventDefault(); copySelected(); return; }
-    if (key === "v") { e.preventDefault(); pasteClipboard(); return; }
-    if (key === "a") { e.preventDefault(); selectAll(); return; }
-  }
-
-  // ... (기타 단축키 A, B, X, K 등 유지)
-});
-
-// --------------------------------------------------------
-// ✅ KeyUp : 키에서 손을 뗄 때 (L키 즉시 OFF)
-// --------------------------------------------------------
-window.addEventListener("keyup", (e) => {
-  const key = e.key.toLowerCase();
-
-  if (key === "l") {
-    gizmoEnabled = false;
-    hoveredAxis = null;
-    updateRingHoverVisuals(null);
-    updateRotationGizmo(); // 링 숨기기
-
-    if (dragMode === "rotate") {
-      dragMode = null;
-      dragging = false;
-      if (typeof angleUI !== 'undefined' && angleUI) angleUI.style.display = "none";
-    }
-    console.log("L키: 회전 모드 OFF");
-  }
-});
-
-
-
 
 
 
@@ -9543,12 +9235,204 @@ function padString(str, len) {
 
 
 
+document.addEventListener('keydown', function(event) {
+    // 입력창(input, textarea)에 글을 쓰고 있을 때는 단축키가 작동하지 않도록 방지
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+
+    switch(event.key) {
+        case '1':
+            setView('front'); // 1번 키 -> FRONT
+            break;
+        case '2':
+            setView('back');  // 2번 키 -> BACK
+            break;
+        case '3':
+            setView('left');  // 3번 키 -> LEFT
+            break;
+        case '4':
+            setView('right'); // 4번 키 -> RIGHT
+            break;
+        case '5':
+            setView('top');   // 5번 키 -> TOP
+            break;
+    }
+});
 
 
 
 
 
+/* ========== 단축키 통합 키보드 이벤트 리스너 (모든 회전/이동 포함) ========== */
+window.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
+    // 1. 공통 기능 (R:리셋)
+    if (key === "7" ) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    console.log("시점 초기화 작동 시도");
+
+    // 1. 만약 다른 이름의 함수일 경우를 대비해 가장 흔한 이름들 다 체크
+    const resetFunc = window.resetView || window.initView || window.resetCamera;
+    
+    if (typeof resetFunc === "function") {
+        resetFunc();
+        console.log("기존 함수로 리셋 완료");
+    } 
+    // 2. 함수가 없으면 컨트롤러 자체를 강제 리셋 (대부분의 Three.js 프로젝트 해당)
+    else if (window.controls) {
+        window.controls.reset(); 
+        // controls.reset()이 작동 안 할 경우를 대비한 좌표 강제 대입
+        if (window.camera) {
+            window.camera.position.set(500, 500, 500); // 보통 초기 카메라 위치
+            window.controls.update();
+        }
+        console.log("컨트롤러 강제 리셋 완료");
+    }
+    return;
+
+    }
+
+    // D : 치수 토글
+  if (!e.ctrlKey && !e.metaKey && key === "d") {
+    e.preventDefault();
+    dimensionEnabled = !dimensionEnabled;
+    if (!dimensionEnabled) hideAllDimensions();
+    else showDimensionsSmartForSelection();
+    return;
+  }
+
+
+// ✅ 3. 회전 링 켜기 (L) - 이 부분이 빠져있어서 안 됐던 것입니다.
+    if (key === "r") {
+        if (e.repeat) return; // 꾹 누름 방지
+        gizmoEnabled = true;
+        if (typeof updateRotationGizmo === 'function') updateRotationGizmo();
+        console.log("L키: 회전 모드 ON");
+        return;
+    }
+
+
+    // 2. Ctrl 조합 (C, V, Z, Y, A)
+    if (e.ctrlKey || e.metaKey) {
+        if (key === "c") { e.preventDefault(); copySelected(); }
+        else if (key === "v") { e.preventDefault(); pasteClipboard(); }
+        else if (key === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+        else if (key === "y") { e.preventDefault(); redo(); }
+        else if (key === "a") { e.preventDefault(); selectAll(); }
+        return;
+    }
+
+    // 3. 기타 단축키 (Delete, S, X, F, B)
+    if (e.key === "Delete" || e.key === "Backspace") { deleteSelected(); return; }
+
+    // 스냅  
+    if (key === "s") { attachSelectedGroup(); return; }
+
+    // 선택보기  
+    if (key === "6") { focusOnSelection(); return; }
+
+    
+    // 바닥정렬 
+    if (key === "f" || key === "b") { e.preventDefault(); placeSelectionOnGround(); return; }
+
+    // --- 이하 선택된 대상이 있을 때만 작동 ---
+    if (!selectedMesh && selectedSet.size === 0) return;
+    let moveStep = baseMoveStep;
+    if (e.shiftKey) moveStep *= 5;
+    const rotateStep = THREE.MathUtils.degToRad(15);
+    const targets = selectedSet.size > 0 ? [...selectedSet] : [selectedMesh];
+
+
+
+    // 4. 메인 동작 (Switch문)
+    switch (key) {
+       // ✅ [사용자 요청] 컬러별 회전 로직 (축별 회전)
+  /*    case "q": // 레드(Y축) 정방향 (예시: q키에 할당)
+        case "레드": 
+            saveState();
+            targets.forEach(o => o.rotation.y += rotateStep);
+            break;
+        case "a": // 레드(Y축) 역방향 (예시: a키에 할당)
+            saveState();
+            targets.forEach(o => o.rotation.y -= rotateStep);
+            break;
+
+        case "w": // 블루(X축) 정방향
+        case "블루":
+            saveState();
+            targets.forEach(o => o.rotation.x += rotateStep);
+            break;
+        case "s": // 블루(X축) 역방향
+            saveState();
+            targets.forEach(o => o.rotation.x -= rotateStep);
+            break;
+
+        case "e": // 그린(Z축) 정방향
+        case "그린":
+            saveState();
+            targets.forEach(o => o.rotation.z += rotateStep);
+            break;
+        case "그린": // 그린(Z축) 역방향 (Ctrl 없을때만)
+            saveState();
+            targets.forEach(o => o.rotation.z -= rotateStep);
+            break;    */
+
+        // --- 높이 및 이동 ---
+        case "+": case "=":
+            e.preventDefault(); saveState(); translateSelection(0, moveStep, 0);
+            break;
+        case "-":
+            e.preventDefault(); saveState(); translateSelection(0, -moveStep, 0);
+            break;
+
+
+        // --그룹
+        case "g":
+            e.preventDefault();
+            if (selectedSet.size >= 2) groupSelected();
+            else (selectedMesh instanceof THREE.Group) ? ungroupSelected() : groupSelected();
+            break;
+
+
+      
+        case "arrowleft":
+            e.preventDefault(); saveState(); moveSelectionViewRelative(-moveStep, 0);
+            break;
+        case "arrowright":
+            e.preventDefault(); saveState(); moveSelectionViewRelative(moveStep, 0);
+            break;
+        case "arrowup":
+            e.preventDefault(); saveState(); moveSelectionViewRelative(0, moveStep);
+            break;
+        case "arrowdown":
+            e.preventDefault(); saveState(); moveSelectionViewRelative(0, -moveStep);
+            break;
+    }
+
+    
+});
+
+
+
+ window.addEventListener("keyup", (e) => {
+  const key = e.key.toLowerCase();
+
+  if (key === "l") {
+    gizmoEnabled = false;
+    hoveredAxis = null;
+    updateRingHoverVisuals(null);
+    updateRotationGizmo(); // 링 숨기기
+
+    if (dragMode === "rotate") {
+      dragMode = null;
+      dragging = false;
+      if (typeof angleUI !== 'undefined' && angleUI) angleUI.style.display = "none";
+    }
+    console.log("L키: 회전 모드 OFF");
+  }
+});
 
 </script>
 </body>
