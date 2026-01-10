@@ -159,7 +159,7 @@
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       font-size: 13px;
-      width:  180px;
+      width:  190px;
       box-sizing: border-box;
     
 max-height: 95vh;
@@ -561,13 +561,13 @@ max-height: 95vh;
 
  <!-- 중앙: 정렬 -->
 <div class="centerGroup">
-  <button class="top-btn" onclick="attachSelectedGroup()" style="color: #e3eb7b;">Snap(S)</button>
-  <button class="top-btn" onclick="placeSelectionOnGround()" style="color: #e3eb7b;">Floor(F)</button>
-  <button class="top-btn" onclick="alignSelectionAxis('z')" style="color: #e3eb7b;">Red</button>
-  <button class="top-btn" onclick="alignSelectionAxis('x')" style="color: #e3eb7b;">Blue</button>
-  <button class="top-btn" onclick="alignSelectionAxis('y')" style="color: #e3eb7b;">Top</button>
-  <button class="top-btn" onclick="alignSelectionToAnchorCenter({axes:'xyz'})" style="color: #e3eb7b;">Center</button>
-  <button class="top-btn" onclick="snapPlateToPillarsTop()" style="color: #e3eb7b;">E.T.E</button>
+<button class="top-btn" onclick="attachSelectedGroup()" style="color: #e3eb7b;">Snap(S)</button>
+<button class="top-btn" onclick="placeSelectionOnGround()" style="color: #e3eb7b;">Floor(F)</button>
+<button class="top-btn" onclick="alignSelectionToAnchorCenter({ axes: 'x' })" style="color: #e3eb7b;">Blue</button>
+<button class="top-btn" onclick="alignSelectionToAnchorCenter({ axes: 'z' })" style="color: #e3eb7b;">Red</button>
+<button class="top-btn" onclick="alignSelectionToAnchorCenter({ axes: 'y' })" style="color: #e3eb7b;">Top</button>
+<button class="top-btn" onclick="alignSelectionToAnchorCenter({ axes: 'xyz' })" style="color: #e3eb7b;">Center</button>
+<button class="top-btn" onclick="snapPlateToPillarsTop()" style="color: #e3eb7b;">E.T.E</button>
 </div>
 
 
@@ -658,6 +658,9 @@ max-height: 95vh;
 <button onclick="spawnTee()" style="color: #ffffff;">Tee</button>
 <button onclick="spawnCrossTee()" style="color: #ffffff;">Cross Tee</button>
 <button onclick="spawnSOTee()" style="color: #ffffff;">S.O.Tee</button>
+<button onclick="spawn5WayTee()" style="color: #ffffff;">5-Way Tee</button>
+<button onclick="spawn6WayTee()" style="color: #ffffff;">6-Way Tee</button>
+
 
 <button onclick="spawnCap()" style="color: #ffffff;">Cap</button>
 <button onclick="spawnPlug()" style="color: #ffffff;">Plug</button>
@@ -765,11 +768,10 @@ max-height: 95vh;
   <div class="ui-header"></div>
 
   <div class="color-swatches">
-
-  <div class="swatch empty" data-color="" title="빈 슬롯"></div>
-    <div class="swatch empty" data-color="" title="빈 슬롯"></div>
-    <div class="swatch empty" data-color="" title="빈 슬롯"></div>
-    <div class="swatch empty" data-color="" title="빈 슬롯"></div>
+    <div class="swatch fixed" data-color="#3a3a3a" style="background:#3a3a3a" onclick="applyPlateColor('#3a3a3a')"></div>
+    <div class="swatch fixed" data-color="#444444" style="background:#444444" onclick="applyPlateColor('#444444')"></div>
+    <div class="swatch fixed" data-color="#4f3021" style="background:#4f3021" onclick="applyPlateColor('#4f3021')"></div>
+    <div class="swatch fixed" data-color="#bfc3c7" style="background:#bfc3c7" onclick="applyPlateColor('#bfc3c7')"></div>
     <div class="swatch empty" data-color="" title="빈 슬롯"></div> 
     <div class="swatch empty" data-color="" title="빈 슬롯"></div>
     <div class="swatch empty" data-color="" title="빈 슬롯"></div>
@@ -889,7 +891,7 @@ function syncPlateSwatchesFromColor(hex){
 /* =========================================================
    ✅ Plate color picker → Swatch에 자동 저장/추가 (+ localStorage)
    - 컬러피커에서 고른 색이 팔레트에 없으면 자동으로 추가
-   - 새로고침해도 유지(localStorage)
+   
 ========================================================= */
 const PLATE_SWATCH_STORE_KEY = "pipe3d_plate_custom_swatches_v1";
 const MAX_CUSTOM_SWATCHES = 12;
@@ -1433,32 +1435,38 @@ function loadProjectFromJSON(payload) {
 
 
 function alignSelectionToAnchorCenter(opts = { axes: "xz" }) {
+  // Set을 배열로 변환 (순서 보장: 0번 인덱스가 가장 먼저 선택한 객체)
   const targets = selectedSet.size > 0 ? [...selectedSet] : (selectedMesh ? [selectedMesh] : []);
+  
   if (targets.length < 2) {
     alert("기준 1개 + 정렬할 개체 1개 이상(총 2개 이상) 선택하세요.");
     return;
   }
 
-  // ✅ 기준(Anchor) = 마지막 선택된 것(selectedMesh)
-  const anchor = selectedMesh || targets[targets.length - 1];
+  // ✅ [수정됨] 기준(Anchor) = 첫 번째 선택된 것 (targets[0])
+  const anchor = targets[0]; 
+  
   if (!anchor) return;
 
   saveState();
 
-  // 기준 중심
+  // 기준(Anchor)의 중심점 계산
   const aBox = new THREE.Box3().setFromObject(anchor);
   const aCenter = new THREE.Vector3();
   aBox.getCenter(aCenter);
 
   const axes = (opts.axes || "xz").toLowerCase(); // "x", "z", "xz", "xyz"
 
+  // 나머지 객체들을 기준점으로 이동
   targets.forEach(obj => {
+    // 기준 객체는 움직이지 않음
     if (obj === anchor) return;
 
     const b = new THREE.Box3().setFromObject(obj);
     const c = new THREE.Vector3();
     b.getCenter(c);
 
+    // 이동 거리 계산: (기준점 - 현재점)
     if (axes.includes("x")) obj.position.x += (aCenter.x - c.x);
     if (axes.includes("y")) obj.position.y += (aCenter.y - c.y);
     if (axes.includes("z")) obj.position.z += (aCenter.z - c.z);
@@ -4001,22 +4009,23 @@ window.spawnProceduralElbow15A = function() {
 
 
 /* =================================================================
-   [수정됨] 45도 엘보 15A (Chamfered Band + Snap Fixed)
-   - 밴드 모따기(Chamfer) 1mm 적용 (LatheGeometry 사용)
-   - 스냅 포인트 보정(4mm Out) 기능 유지
+   [수정됨] 45도 엘보 15A (제자리 회전 적용 + 기존 스펙 유지)
+   - 밴드 모따기(Chamfer) 1mm 유지
+   - 스냅 포인트 4mm Out 유지
+   - [변경] 모델 중심점 보정 (제자리 회전)
    ================================================================= */
 window.spawnProcedural45Elbow15A = function() {
   saveState(); 
 
   const MM_PER_UNIT = 100;
 
-  // 1. 규격 설정 (15A)
+  // 1. 규격 설정 (15A) - 기존 값 유지
   const ELBOW_RADIUS_MM = 35; 
   const BODY_DIA_MM = 27;     
   const BAND_DIA_MM = 31;     
   const BAND_HEIGHT_MM = 8;   
   
-  // [추가] 모따기 1mm
+  // 모따기 1mm
   const chamferMm = 1;
 
   const R_MAIN = ELBOW_RADIUS_MM / MM_PER_UNIT; 
@@ -4025,7 +4034,7 @@ window.spawnProcedural45Elbow15A = function() {
   const hBand = BAND_HEIGHT_MM / MM_PER_UNIT;
   const hChamfer = chamferMm / MM_PER_UNIT;
   
-  // [핵심] 스냅 포인트 보정값 (밴드 절반 두께)
+  // 스냅 포인트 보정값
   const snapOffset = hBand / 2;
 
   const ANGLE = Math.PI / 4; // 45도
@@ -4038,31 +4047,41 @@ window.spawnProcedural45Elbow15A = function() {
     side: THREE.DoubleSide
   });
 
-  // --- 2. 본체 (토러스) ---
+  // --- 2. 본체 (토러스) 및 [중심 보정] ---
   const torusGeo = new THREE.TorusGeometry(R_MAIN, rBody, 32, 32, ANGLE);
+  
+  // [수정] 지오메트리 중심 계산 및 이동 (제자리 회전을 위해 필수)
+  torusGeo.computeBoundingBox();
+  const centerOffset = new THREE.Vector3();
+  torusGeo.boundingBox.getCenter(centerOffset); // 현재 중심점 파악
+  torusGeo.center(); // 지오메트리 중심을 (0,0,0)으로 이동
+
   const mainMesh = new THREE.Mesh(torusGeo, mat);
 
 
-  // --- 3. 밴드 생성 (모따기 적용 함수) ---
+  // --- 3. 밴드 생성 (기존 함수 유지) ---
   function createChamferedBand() {
     const pts = [];
-    // 반시계 방향 단면 그리기
     pts.push(new THREE.Vector2(0, -hBand/2));             
     pts.push(new THREE.Vector2(rBand - hChamfer, -hBand/2)); 
     pts.push(new THREE.Vector2(rBand, -hBand/2 + hChamfer)); 
     pts.push(new THREE.Vector2(rBand, hBand/2 - hChamfer));  
     pts.push(new THREE.Vector2(rBand - hChamfer, hBand/2));  
-    pts.push(new THREE.Vector2(0, hBand/2));              
+    pts.push(new THREE.Vector2(0, hBand/2));               
 
     const geo = new THREE.LatheGeometry(pts, 32);
     geo.computeVertexNormals();
     return new THREE.Mesh(geo, mat);
   }
 
+  // [수정] 밴드 위치 계산 (centerOffset 만큼 빼줘서 위치 보정)
+  
   // (1) 시작점 밴드
   const bandStart = createChamferedBand();
-  bandStart.position.set(R_MAIN, 0, 0); 
-  // Lathe는 기본 Y축 정렬이므로 토러스 시작점의 접선(Y축)과 일치 -> 회전 불필요
+  const startPos = new THREE.Vector3(R_MAIN, 0, 0);
+  startPos.sub(centerOffset); // 중심 이동량만큼 보정
+  
+  bandStart.position.copy(startPos);
   mainMesh.add(bandStart);
 
   // (2) 끝점 밴드
@@ -4070,24 +4089,28 @@ window.spawnProcedural45Elbow15A = function() {
   
   const endX_center = R_MAIN * Math.cos(ANGLE);
   const endY_center = R_MAIN * Math.sin(ANGLE);
-  
-  bandEnd.position.set(endX_center, endY_center, 0);
+  const endPos = new THREE.Vector3(endX_center, endY_center, 0);
+  endPos.sub(centerOffset); // 중심 이동량만큼 보정
+
+  bandEnd.position.copy(endPos);
   bandEnd.rotation.z = ANGLE; // 45도 회전
   mainMesh.add(bandEnd);
 
 
-  // --- 4. 스냅 포인트 계산 (기존 로직 유지 - 바깥으로 밀어내기) ---
+  // --- 4. 스냅 포인트 계산 (중심 보정 적용) ---
   
-  // (1) 시작점
-  const startSnapX = R_MAIN;
-  const startSnapY = -snapOffset; 
+  // (1) 시작점 (기존 계산값 - offset)
+  const startSnapX_raw = R_MAIN;
+  const startSnapY_raw = -snapOffset; 
+  const p1 = new THREE.Vector3(startSnapX_raw, startSnapY_raw, 0).sub(centerOffset);
 
-  // (2) 끝점
+  // (2) 끝점 (기존 계산값 - offset)
   const tanX = -Math.sin(ANGLE); 
   const tanY = Math.cos(ANGLE);  
   
-  const endSnapX = endX_center + (tanX * snapOffset);
-  const endSnapY = endY_center + (tanY * snapOffset);
+  const endSnapX_raw = endX_center + (tanX * snapOffset);
+  const endSnapY_raw = endY_center + (tanY * snapOffset);
+  const p2 = new THREE.Vector3(endSnapX_raw, endSnapY_raw, 0).sub(centerOffset);
 
   const nx = tanX;
   const ny = tanY;
@@ -4097,16 +4120,16 @@ window.spawnProcedural45Elbow15A = function() {
       isPipe: false,      
       kind: "elbow45",     
       subKind: "15a",     
-      stlName: "Elbow45_15A_Chamfer", // 이름 변경
+      stlName: "Elbow45_15A_Chamfer",
 
       snapPoints: [
-        { pos: [startSnapX, startSnapY, 0], normal: [0, -1, 0] }, 
-        { pos: [endSnapX, endSnapY, 0], normal: [nx, ny, 0] } 
+        { pos: [p1.x, p1.y, p1.z], normal: [0, -1, 0] }, 
+        { pos: [p2.x, p2.y, p2.z], normal: [nx, ny, 0] } 
       ],
       
       threadCenters: {
-        port1: [startSnapX, startSnapY, 0],
-        port2: [endSnapX, endSnapY, 0]
+        port1: [p1.x, p1.y, p1.z],
+        port2: [p2.x, p2.y, p2.z]
       }
   };
 
@@ -4562,6 +4585,220 @@ window.spawnProceduralSOTee15A = function() {
   if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
   updateRotationGizmo();
 };
+
+
+
+
+
+/* =================================================================
+   [수정 완료] KS 15A 5-way Tee (Chamfer + Vertical)
+   - 구조: 십자(+) 모양에 앞쪽(Z+) 방향 포트 추가
+   - 업그레이드: 모든 끝단 밴드 모따기(1mm) 적용
+   ================================================================= */
+window.spawnProcedural5WayTee15A = function() {
+  saveState(); 
+
+  const MM_PER_UNIT = 100;
+
+  // 1. 규격 설정 (KS 15A 기준 유지)
+  const FACE_POS_MM = 27;   
+  const BODY_DIA_MM = 27;   
+  const BAND_DIA_MM = 31;   
+  const BAND_HEIGHT_MM = 8; 
+  const CHAMFER_MM = 1;
+
+  const facePos = FACE_POS_MM / MM_PER_UNIT;
+  const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
+  const rBand = (BAND_DIA_MM / 2) / MM_PER_UNIT;
+  const hBand = BAND_HEIGHT_MM / MM_PER_UNIT;
+  const hChamfer = CHAMFER_MM / MM_PER_UNIT;
+  
+  const totalLen = facePos * 2; // 기존 십자용 길이
+  const singleLen = facePos;    // 5번째 팔(Z축)용 길이
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x444444, 
+    roughness: 0.9, 
+    metalness: 0.0, 
+    side: THREE.DoubleSide
+  });
+
+  // --- 2. 본체 구조 ---
+  
+  // (1) 수직 기둥 (Y축)
+  const vGeo = new THREE.CylinderGeometry(rBody, rBody, totalLen, 32);
+  const mainMesh = new THREE.Mesh(vGeo, mat);
+
+  // (2) 수평 팔 (X축)
+  const hGeo = new THREE.CylinderGeometry(rBody, rBody, totalLen, 32);
+  hGeo.rotateZ(Math.PI / 2);
+  const crossMeshX = new THREE.Mesh(hGeo, mat);
+  mainMesh.add(crossMeshX);
+
+  // (3) 앞쪽 팔 (Z축 추가 - 5번째 방향)
+  // 중심에서 facePos만큼만 뻗어나옴
+  const zGeo = new THREE.CylinderGeometry(rBody, rBody, singleLen, 32);
+  zGeo.rotateX(Math.PI / 2); // Z축을 향하게 회전
+  zGeo.translate(0, 0, singleLen / 2); // 중심에서 앞쪽으로 밀기
+  const crossMeshZ = new THREE.Mesh(zGeo, mat);
+  mainMesh.add(crossMeshZ);
+
+
+  // --- 3. 밴드 생성 함수 (LatheGeometry) ---
+  function createChamferedBand() {
+    const pts = [];
+    pts.push(new THREE.Vector2(0, -hBand/2)); 
+    pts.push(new THREE.Vector2(rBand - hChamfer, -hBand/2)); 
+    pts.push(new THREE.Vector2(rBand, -hBand/2 + hChamfer)); 
+    pts.push(new THREE.Vector2(rBand, hBand/2 - hChamfer));  
+    pts.push(new THREE.Vector2(rBand - hChamfer, hBand/2));  
+    pts.push(new THREE.Vector2(0, hBand/2)); 
+
+    const geo = new THREE.LatheGeometry(pts, 32);
+    geo.computeVertexNormals();
+    return new THREE.Mesh(geo, mat);
+  }
+
+  const offset = facePos - (hBand / 2);
+
+  // 밴드 배치 (상, 하, 좌, 우 + 앞)
+  const positions = [
+    { pos: [0, offset, 0], rot: [0, 0, 0] },          // Top
+    { pos: [0, -offset, 0], rot: [0, 0, 0] },         // Bottom
+    { pos: [offset, 0, 0], rot: [0, 0, -Math.PI/2] }, // Right
+    { pos: [-offset, 0, 0], rot: [0, 0, Math.PI/2] },  // Left
+    { pos: [0, 0, offset], rot: [Math.PI/2, 0, 0] }   // Front (Z+)
+  ];
+
+  positions.forEach(p => {
+    const band = createChamferedBand();
+    band.position.set(...p.pos);
+    band.rotation.set(...p.rot);
+    mainMesh.add(band);
+  });
+
+  // --- 4. 속성 및 스냅 포인트 설정 ---
+  mainMesh.name = "5WayTee15A";
+  mainMesh.userData = {
+      isFitting: true,
+      kind: "5way_tee", 
+      subKind: "15a",
+      stlName: "5WayTee15A_Chamfer",
+
+      snapPoints: [
+        { pos: [0, facePos, 0], normal: [0, 1, 0] },    // 위
+        { pos: [0, -facePos, 0], normal: [0, -1, 0] },  // 아래
+        { pos: [facePos, 0, 0], normal: [1, 0, 0] },    // 오른쪽
+        { pos: [-facePos, 0, 0], normal: [-1, 0, 0] },  // 왼쪽
+        { pos: [0, 0, facePos], normal: [0, 0, 1] }     // 앞 (Z+)
+      ],
+      
+      threadCenters: {
+        port1: [0, facePos, 0],
+        port2: [0, -facePos, 0],
+        port3: [facePos, 0, 0],
+        port4: [-facePos, 0, 0],
+        port5: [0, 0, facePos]
+      }
+  };
+
+  mainMesh.children.forEach(child => {
+      child.userData = Object.assign({}, mainMesh.userData);
+  });
+
+  // --- 5. 배치 ---
+  placeOnGround(mainMesh);
+  scene.add(mainMesh);
+  draggable.push(mainMesh);
+
+  clearAllSelection();
+  selectedSet.add(mainMesh);
+  markSelected(mainMesh);
+  selectedMesh = mainMesh;
+
+  if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
+  updateRotationGizmo();
+};
+
+
+/* =================================================================
+   [분리] KS 15A 6-Way Tee
+   ================================================================= */
+window.spawnProcedural6WayTee15A = function() {
+  saveState(); 
+
+  const MM_PER_UNIT = 100;
+  const FACE_POS_MM = 27;   
+  const BODY_DIA_MM = 27;   
+  const BAND_DIA_MM = 31;   
+  const BAND_HEIGHT_MM = 8; 
+  const CHAMFER_MM = 1;
+
+  const facePos = FACE_POS_MM / MM_PER_UNIT;
+  const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
+  const rBand = (BAND_DIA_MM / 2) / MM_PER_UNIT;
+  const hBand = BAND_HEIGHT_MM / MM_PER_UNIT;
+  const hChamfer = CHAMFER_MM / MM_PER_UNIT;
+  const totalLen = facePos * 2;
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x444444, roughness: 0.9, metalness: 0.0, side: THREE.DoubleSide
+  });
+
+  const mainMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, totalLen, 32), mat);
+  const hGeo = new THREE.CylinderGeometry(rBody, rBody, totalLen, 32); hGeo.rotateZ(Math.PI / 2);
+  mainMesh.add(new THREE.Mesh(hGeo, mat));
+  const zGeo = new THREE.CylinderGeometry(rBody, rBody, totalLen, 32); zGeo.rotateX(Math.PI / 2);
+  mainMesh.add(new THREE.Mesh(zGeo, mat));
+
+  function createBand() {
+    const pts = [
+      new THREE.Vector2(0, -hBand/2),
+      new THREE.Vector2(rBand - hChamfer, -hBand/2),
+      new THREE.Vector2(rBand, -hBand/2 + hChamfer),
+      new THREE.Vector2(rBand, hBand/2 - hChamfer),
+      new THREE.Vector2(rBand - hChamfer, hBand/2),
+      new THREE.Vector2(0, hBand/2)
+    ];
+    return new THREE.Mesh(new THREE.LatheGeometry(pts, 32), mat);
+  }
+
+  const offset = facePos - (hBand / 2);
+  const configs = [
+    { p: [0, offset, 0], r: [0, 0, 0] }, { p: [0, -offset, 0], r: [0, 0, 0] },
+    { p: [offset, 0, 0], r: [0, 0, -Math.PI/2] }, { p: [-offset, 0, 0], r: [0, 0, Math.PI/2] },
+    { p: [0, 0, offset], r: [Math.PI/2, 0, 0] }, { p: [0, 0, -offset], r: [Math.PI/2, 0, 0] }
+  ];
+
+  configs.forEach(c => {
+    const b = createBand();
+    b.position.set(...c.p); b.rotation.set(...c.r);
+    mainMesh.add(b);
+  });
+
+  mainMesh.name = "6WayTee15A";
+  mainMesh.userData = {
+    isFitting: true, kind: "6way_tee", subKind: "15a",
+    snapPoints: [
+      { pos: [0, facePos, 0], normal: [0, 1, 0] }, { pos: [0, -facePos, 0], normal: [0, -1, 0] },
+      { pos: [facePos, 0, 0], normal: [1, 0, 0] }, { pos: [-facePos, 0, 0], normal: [-1, 0, 0] },
+      { pos: [0, 0, facePos], normal: [0, 0, 1] }, { pos: [0, 0, -facePos], normal: [0, 0, -1] }
+    ]
+  };
+
+  // 기존 소환 로직 직접 포함
+  mainMesh.children.forEach(child => { child.userData = Object.assign({}, mainMesh.userData); });
+  placeOnGround(mainMesh);
+  scene.add(mainMesh);
+  draggable.push(mainMesh);
+  clearAllSelection();
+  selectedSet.add(mainMesh);
+  markSelected(mainMesh);
+  selectedMesh = mainMesh;
+  if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
+  updateRotationGizmo();
+};
+
 
 
 
@@ -5654,21 +5891,22 @@ window.spawnProceduralElbow20A = function() {
 
 
 /* =================================================================
-   [수정됨] 45도 엘보 20A (Chamfered + Snap Fixed)
-   - 밴드 모따기(Chamfer) 1mm 적용 (LatheGeometry 사용)
-   - 스냅 포인트 보정(4.5mm Out) 기능 유지
+   [수정됨] 45도 엘보 20A (제자리 회전 적용 + 기존 스펙 유지)
+   - 밴드 모따기(Chamfer) 1mm 유지
+   - 스냅 포인트 보정(4.5mm Out) 유지
+   - [변경] 모델 중심점 보정 (제자리 회전)
    ================================================================= */
 window.spawnProcedural45Elbow20A = function() {
   saveState(); 
 
   const MM_PER_UNIT = 100;
 
-  // 1. 규격 설정 (20A)
-  const ELBOW_RADIUS_MM = 27; 
+  // 1. 규격 설정 (20A) - 기존 값 유지
+  const ELBOW_RADIUS_MM = 41.8; 
   const BODY_DIA_MM = 34;     
   const BAND_DIA_MM = 39;     
   const BAND_HEIGHT_MM = 9;   
-  const CHAMFER_MM = 1; // [추가] 모따기 1mm
+  const CHAMFER_MM = 1; 
 
   const R_MAIN = ELBOW_RADIUS_MM / MM_PER_UNIT; 
   const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
@@ -5676,7 +5914,7 @@ window.spawnProcedural45Elbow20A = function() {
   const hBand = BAND_HEIGHT_MM / MM_PER_UNIT;
   const hChamfer = CHAMFER_MM / MM_PER_UNIT;
   
-  // 스냅 보정값 (밴드 절반 두께)
+  // 스냅 보정값
   const snapOffset = hBand / 2; // 4.5mm
 
   const ANGLE = Math.PI / 4; // 45도
@@ -5689,26 +5927,26 @@ window.spawnProcedural45Elbow20A = function() {
     side: THREE.DoubleSide
   });
 
-  // --- 2. 본체 (토러스) ---
+  // --- 2. 본체 (토러스) 및 [중심 보정] ---
   const torusGeo = new THREE.TorusGeometry(R_MAIN, rBody, 32, 32, ANGLE);
+  
+  // [수정] 지오메트리 중심 계산 및 이동 (제자리 회전을 위해 필수)
+  torusGeo.computeBoundingBox();
+  const centerOffset = new THREE.Vector3();
+  torusGeo.boundingBox.getCenter(centerOffset); // 현재 중심점 파악
+  torusGeo.center(); // 지오메트리 중심을 (0,0,0)으로 이동
+
   const mainMesh = new THREE.Mesh(torusGeo, mat);
 
 
-  // --- 3. 밴드 생성 (모따기 적용 함수) ---
+  // --- 3. 밴드 생성 (기존 함수 유지) ---
   function createChamferedBand() {
     const pts = [];
-    // 반시계 방향 단면 그리기
-    // 1. 바닥 중심
     pts.push(new THREE.Vector2(0, -hBand/2));
-    // 2. 바닥 모서리 (모따기 시작)
     pts.push(new THREE.Vector2(rBand - hChamfer, -hBand/2));
-    // 3. 바닥 측면 (모따기 끝)
     pts.push(new THREE.Vector2(rBand, -hBand/2 + hChamfer));
-    // 4. 위쪽 측면 (모따기 시작)
     pts.push(new THREE.Vector2(rBand, hBand/2 - hChamfer));
-    // 5. 위쪽 모서리 (모따기 끝)
     pts.push(new THREE.Vector2(rBand - hChamfer, hBand/2));
-    // 6. 위쪽 중심
     pts.push(new THREE.Vector2(0, hBand/2));
 
     const geo = new THREE.LatheGeometry(pts, 32);
@@ -5716,32 +5954,45 @@ window.spawnProcedural45Elbow20A = function() {
     return new THREE.Mesh(geo, mat);
   }
 
+  // [수정] 밴드 위치 계산 (centerOffset 만큼 빼줘서 위치 보정)
+
   // (1) 시작점 밴드
   const bandStart = createChamferedBand();
-  bandStart.position.set(R_MAIN, 0, 0); 
-  // Lathe는 Y축 정렬이므로 토러스 시작점의 접선(Y축)과 일치 -> 회전 불필요
+  const startPos = new THREE.Vector3(R_MAIN, 0, 0);
+  startPos.sub(centerOffset); // 중심 이동량만큼 보정
+
+  bandStart.position.copy(startPos);
+  // Lathe 기본 Y축 정렬이므로 회전 불필요 (토러스 시작점 Y축 접선과 일치)
   mainMesh.add(bandStart);
+
 
   // (2) 끝점 밴드
   const bandEnd = createChamferedBand();
   
   const endX_center = R_MAIN * Math.cos(ANGLE);
   const endY_center = R_MAIN * Math.sin(ANGLE);
+  const endPos = new THREE.Vector3(endX_center, endY_center, 0);
+  endPos.sub(centerOffset); // 중심 이동량만큼 보정
   
-  bandEnd.position.set(endX_center, endY_center, 0);
+  bandEnd.position.copy(endPos);
   bandEnd.rotation.z = ANGLE; // 45도 회전
   mainMesh.add(bandEnd);
 
 
-  // --- 4. 스냅 포인트 계산 (기존 유지) ---
-  const startSnapX = R_MAIN;
-  const startSnapY = -snapOffset; 
+  // --- 4. 스냅 포인트 계산 (중심 보정 적용) ---
+  
+  // (1) 시작점 (기존 계산값 - offset)
+  const startSnapX_raw = R_MAIN;
+  const startSnapY_raw = -snapOffset; 
+  const p1 = new THREE.Vector3(startSnapX_raw, startSnapY_raw, 0).sub(centerOffset);
 
+  // (2) 끝점 (기존 계산값 - offset)
   const tanX = -Math.sin(ANGLE); 
   const tanY = Math.cos(ANGLE);  
   
-  const endSnapX = endX_center + (tanX * snapOffset);
-  const endSnapY = endY_center + (tanY * snapOffset);
+  const endSnapX_raw = endX_center + (tanX * snapOffset);
+  const endSnapY_raw = endY_center + (tanY * snapOffset);
+  const p2 = new THREE.Vector3(endSnapX_raw, endSnapY_raw, 0).sub(centerOffset);
 
   const nx = tanX;
   const ny = tanY;
@@ -5754,13 +6005,13 @@ window.spawnProcedural45Elbow20A = function() {
       stlName: "Elbow45_20A_Chamfer",
 
       snapPoints: [
-        { pos: [startSnapX, startSnapY, 0], normal: [0, -1, 0] }, 
-        { pos: [endSnapX, endSnapY, 0], normal: [nx, ny, 0] } 
+        { pos: [p1.x, p1.y, p1.z], normal: [0, -1, 0] }, 
+        { pos: [p2.x, p2.y, p2.z], normal: [nx, ny, 0] } 
       ],
       
       threadCenters: {
-        port1: [startSnapX, startSnapY, 0],
-        port2: [endSnapX, endSnapY, 0]
+        port1: [p1.x, p1.y, p1.z],
+        port2: [p2.x, p2.y, p2.z]
       }
   };
 
@@ -6184,6 +6435,219 @@ window.spawnProceduralSOTee20A = function() {
 };
 
 
+
+
+/* =================================================================
+   [최종 완성] KS 20A 5-Way Tee (Chamfered Version)
+   - 치수: 중심~끝단 32mm (20A 규격)
+   - 구조: 십자(+) 모양에 앞쪽(Z+) 포트 추가 (총 5방향)
+   ================================================================= */
+window.spawn5WayTee20A = function() {
+  saveState(); 
+
+  const MM_PER_UNIT = 100;
+
+  // 1. 규격 설정 (20A)
+  const FACE_POS_MM = 32;   // 중심에서 끝단까지 거리
+  const BODY_DIA_MM = 34;   
+  const BAND_DIA_MM = 39;   
+  const BAND_HEIGHT_MM = 9; 
+  const CHAMFER_MM = 1;     // 모따기 1mm
+
+  const facePos = FACE_POS_MM / MM_PER_UNIT;
+  const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
+  const rBand = (BAND_DIA_MM / 2) / MM_PER_UNIT;
+  const hBand = BAND_HEIGHT_MM / MM_PER_UNIT;
+  const hChamfer = CHAMFER_MM / MM_PER_UNIT;
+  
+  const totalLen = facePos * 2;
+  const singleLen = facePos;
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x444444, 
+    roughness: 0.9, 
+    metalness: 0.0, 
+    flatShading: false,
+    side: THREE.DoubleSide
+  });
+
+  // --- 2. 본체 구조 ---
+  
+  // (1) 수직 기둥 (Y축)
+  const vGeo = new THREE.CylinderGeometry(rBody, rBody, totalLen, 32);
+  const mainMesh = new THREE.Mesh(vGeo, mat);
+
+  // (2) 수평 팔 (X축)
+  const hGeo = new THREE.CylinderGeometry(rBody, rBody, totalLen, 32);
+  hGeo.rotateZ(Math.PI / 2); 
+  const crossMeshX = new THREE.Mesh(hGeo, mat);
+  mainMesh.add(crossMeshX);
+
+  // (3) 앞쪽 팔 (Z축 - 5번째 방향)
+  const zGeo = new THREE.CylinderGeometry(rBody, rBody, singleLen, 32);
+  zGeo.rotateX(Math.PI / 2);
+  zGeo.translate(0, 0, singleLen / 2);
+  const crossMeshZ = new THREE.Mesh(zGeo, mat);
+  mainMesh.add(crossMeshZ);
+
+
+  // --- 3. 밴드 생성 (LatheGeometry) ---
+  function createChamferedBand() {
+    const pts = [];
+    pts.push(new THREE.Vector2(0, -hBand/2));             
+    pts.push(new THREE.Vector2(rBand - hChamfer, -hBand/2)); 
+    pts.push(new THREE.Vector2(rBand, -hBand/2 + hChamfer)); 
+    pts.push(new THREE.Vector2(rBand, hBand/2 - hChamfer));  
+    pts.push(new THREE.Vector2(rBand - hChamfer, hBand/2));  
+    pts.push(new THREE.Vector2(0, hBand/2));               
+
+    const geo = new THREE.LatheGeometry(pts, 32);
+    geo.computeVertexNormals();
+    return new THREE.Mesh(geo, mat);
+  }
+
+  const offset = facePos - (hBand / 2);
+
+  // 밴드 위치 및 회전 설정
+  const bandConfigs = [
+    { pos: [0, offset, 0], rot: [0, 0, 0] },          // Top
+    { pos: [0, -offset, 0], rot: [0, 0, 0] },         // Bottom
+    { pos: [offset, 0, 0], rot: [0, 0, -Math.PI/2] }, // Right
+    { pos: [-offset, 0, 0], rot: [0, 0, Math.PI/2] },  // Left
+    { pos: [0, 0, offset], rot: [Math.PI/2, 0, 0] }   // Front (Z+)
+  ];
+
+  bandConfigs.forEach(config => {
+    const band = createChamferedBand();
+    band.position.set(...config.pos);
+    band.rotation.set(...config.rot);
+    mainMesh.add(band);
+  });
+
+
+  // --- 4. 속성 설정 ---
+  mainMesh.name = "5WayTee20A";
+  mainMesh.userData = {
+      isFitting: true,    
+      isPipe: false,      
+      kind: "5way_tee", 
+      subKind: "20a",     
+      stlName: "5WayTee20A_Chamfer",
+
+      snapPoints: [
+        { pos: [0, facePos, 0], normal: [0, 1, 0] },    // 위
+        { pos: [0, -facePos, 0], normal: [0, -1, 0] },  // 아래
+        { pos: [facePos, 0, 0], normal: [1, 0, 0] },    // 오른쪽
+        { pos: [-facePos, 0, 0], normal: [-1, 0, 0] },  // 왼쪽
+        { pos: [0, 0, facePos], normal: [0, 0, 1] }     // 앞
+      ],
+      
+      threadCenters: {
+        port1: [0, facePos, 0],
+        port2: [0, -facePos, 0],
+        port3: [facePos, 0, 0],
+        port4: [-facePos, 0, 0],
+        port5: [0, 0, facePos]
+      }
+  };
+
+  mainMesh.children.forEach(child => {
+      child.userData = Object.assign({}, mainMesh.userData);
+  });
+
+  // --- 5. 배치 ---
+  placeOnGround(mainMesh);
+  scene.add(mainMesh);
+  draggable.push(mainMesh);
+
+  clearAllSelection();
+  selectedSet.add(mainMesh);
+  markSelected(mainMesh);
+  selectedMesh = mainMesh;
+
+  if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
+  updateRotationGizmo();
+};
+
+
+
+
+/* =================================================================
+   [분리] KS 20A 6-Way Tee
+   ================================================================= */
+window.spawnProcedural6WayTee20A = function() {
+  saveState(); 
+
+  const MM_PER_UNIT = 100;
+  const FACE_POS_MM = 32;   
+  const BODY_DIA_MM = 34;   
+  const BAND_DIA_MM = 39;   
+  const BAND_HEIGHT_MM = 9; 
+  const CHAMFER_MM = 1;
+
+  const facePos = FACE_POS_MM / MM_PER_UNIT;
+  const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
+  const rBand = (BAND_DIA_MM / 2) / MM_PER_UNIT;
+  const hBand = BAND_HEIGHT_MM / MM_PER_UNIT;
+  const hChamfer = CHAMFER_MM / MM_PER_UNIT;
+  const totalLen = facePos * 2;
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x444444, roughness: 0.9, metalness: 0.0, side: THREE.DoubleSide
+  });
+
+  const mainMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, totalLen, 32), mat);
+  const hGeo = new THREE.CylinderGeometry(rBody, rBody, totalLen, 32); hGeo.rotateZ(Math.PI / 2);
+  mainMesh.add(new THREE.Mesh(hGeo, mat));
+  const zGeo = new THREE.CylinderGeometry(rBody, rBody, totalLen, 32); zGeo.rotateX(Math.PI / 2);
+  mainMesh.add(new THREE.Mesh(zGeo, mat));
+
+  function createBand() {
+    const pts = [
+      new THREE.Vector2(0, -hBand/2),
+      new THREE.Vector2(rBand - hChamfer, -hBand/2),
+      new THREE.Vector2(rBand, -hBand/2 + hChamfer),
+      new THREE.Vector2(rBand, hBand/2 - hChamfer),
+      new THREE.Vector2(rBand - hChamfer, hBand/2),
+      new THREE.Vector2(0, hBand/2)
+    ];
+    return new THREE.Mesh(new THREE.LatheGeometry(pts, 32), mat);
+  }
+
+  const offset = facePos - (hBand / 2);
+  const configs = [
+    { p: [0, offset, 0], r: [0, 0, 0] }, { p: [0, -offset, 0], r: [0, 0, 0] },
+    { p: [offset, 0, 0], r: [0, 0, -Math.PI/2] }, { p: [-offset, 0, 0], r: [0, 0, Math.PI/2] },
+    { p: [0, 0, offset], r: [Math.PI/2, 0, 0] }, { p: [0, 0, -offset], r: [Math.PI/2, 0, 0] }
+  ];
+
+  configs.forEach(c => {
+    const b = createBand();
+    b.position.set(...c.p); b.rotation.set(...c.r);
+    mainMesh.add(b);
+  });
+
+  mainMesh.name = "6WayTee20A";
+  mainMesh.userData = {
+    isFitting: true, kind: "6way_tee", subKind: "20a",
+    snapPoints: [
+      { pos: [0, facePos, 0], normal: [0, 1, 0] }, { pos: [0, -facePos, 0], normal: [0, -1, 0] },
+      { pos: [facePos, 0, 0], normal: [1, 0, 0] }, { pos: [-facePos, 0, 0], normal: [-1, 0, 0] },
+      { pos: [0, 0, facePos], normal: [0, 0, 1] }, { pos: [0, 0, -facePos], normal: [0, 0, -1] }
+    ]
+  };
+
+  mainMesh.children.forEach(child => { child.userData = Object.assign({}, mainMesh.userData); });
+  placeOnGround(mainMesh);
+  scene.add(mainMesh);
+  draggable.push(mainMesh);
+  clearAllSelection();
+  selectedSet.add(mainMesh);
+  markSelected(mainMesh);
+  selectedMesh = mainMesh;
+  if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
+  updateRotationGizmo();
+};
 
 
 /* =================================================================
@@ -7862,48 +8326,70 @@ function getObjectCenterWorld(obj) {
 }
 
 /* ========== 선택 개체 정렬 유틸 (경계선 기준 수정 버전) ========== */
-function alignSelectionAxis(axis) {
-  const targets = selectedSet.size > 0 ? [...selectedSet] : (selectedMesh ? [selectedMesh] : []);
-  if (targets.length < 2) {
-    alert("정렬할 개체를 2개 이상 선택하세요.");
-    return;
-  }
+/* =================================================================
+   [수정 완료] 정렬 통합 함수 (함수명: alignSelectionAxis)
+   - HTML 버튼(onclick="alignSelectionAxis(...)")과 이름 일치시킴
+   - 기준: 첫 번째 선택한 객체 (list[0]) 고정
+   - 나머지 객체들이 기준 객체 위치로 이동
+   ================================================================= */
+window.alignSelectionAxis = function(axis) {
+    // 1. 선택된 객체가 2개 이상일 때만 작동
+    if (selectedSet.size < 2) return;
 
-  saveState(); // Undo 저장
+    saveState(); // 상태 저장
 
-  // ✅ 1. 기준(Anchor) 설정: 첫 번째 선택된 객체의 바운딩 박스 정보 추출
-  const refObj = targets[0];
-  const refBox = new THREE.Box3().setFromObject(refObj);
+    // Set을 배열로 변환 (순서 보장: list[0]이 첫 번째로 선택한 객체)
+    const list = Array.from(selectedSet);
+    
+    // [핵심] 기준(Anchor)은 무조건 첫 번째 선택한 객체
+    const target = list[0]; 
 
-  targets.forEach((obj, idx) => {
-    if (idx === 0) return; // 기준 객체는 이동하지 않음
+    // 기준 객체의 중심점 계산
+    if (typeof updateBox === "function") updateBox(target);
+    if (!target.geometry.boundingBox) target.geometry.computeBoundingBox();
+    
+    const targetBox = new THREE.Box3().setFromObject(target);
+    const targetCenter = new THREE.Vector3();
+    targetBox.getCenter(targetCenter); // 기준점(Target)의 센터
 
-    const curBox = new THREE.Box3().setFromObject(obj);
-    let delta = 0;
+    // 2. 나머지 객체들(list[1]부터 끝까지)을 이동
+    for (let i = 1; i < list.length; i++) {
+        const mover = list[i];
+        
+        // 이동할 객체의 중심점 계산
+        if (typeof updateBox === "function") updateBox(mover);
+        const moverBox = new THREE.Box3().setFromObject(mover);
+        const moverCenter = new THREE.Vector3();
+        moverBox.getCenter(moverCenter); // 이동할 놈(Mover)의 센터
 
-    if (axis === "y") {
-      // ✅ [상단 정렬] 기준 객체의 최고점(max.y)과 현재 객체의 최고점을 맞춤
-      delta = refBox.max.y - curBox.max.y;
-      obj.position.y += delta;
-    } 
-    else if (axis === "x") {
-      // [X축 정렬] 기준 객체의 중심과 맞춤 (기존 로직 유지 가능)
-      const refCenter = (refBox.max.x + refBox.min.x) / 2;
-      const curCenter = (curBox.max.x + curBox.min.x) / 2;
-      delta = refCenter - curCenter;
-      obj.position.x += delta;
-    } 
-    else if (axis === "z") {
-      // [Z축 정렬] 기준 객체의 중심과 맞춤
-      const refCenter = (refBox.max.z + refBox.min.z) / 2;
-      const curCenter = (curBox.max.z + curBox.min.z) / 2;
-      delta = refCenter - curCenter;
-      obj.position.z += delta;
+        // 이동해야 할 거리(Diff) = 기준점 - 현재점
+        const diff = new THREE.Vector3().subVectors(targetCenter, moverCenter);
+
+        // 3. 축(axis)에 따라 이동 적용
+        if (axis === 'center') {
+            // [Center] X, Y, Z 모든 축을 기준점 중심으로 이동
+            mover.position.add(diff);
+        } 
+        else if (axis === 'x') {
+            // [X축 정렬] Y, Z는 놔두고 X만 기준점에 맞춤
+            mover.position.x += diff.x; 
+        }
+        else if (axis === 'y') {
+            // [Y축 정렬]
+            mover.position.y += diff.y;
+        }
+        else if (axis === 'z') {
+            // [Z축 정렬]
+            mover.position.z += diff.z;
+        }
+        
+        // 이동 후 시각적 요소(포트 등) 업데이트
+        if (typeof updatePortVisuals === "function") updatePortVisuals(mover);
     }
-  });
 
-  updateRotationGizmo(); // 기즈모 갱신
-}
+    // 모든 작업 후 기즈모 갱신
+    updateRotationGizmo();
+};
 
 
 
@@ -8844,7 +9330,23 @@ function spawnBushing() {
   else spawnProceduralBushing25A20A();
 }
 
+// 5-Way Tee 통합 생성 함수
+function spawn5WayTee() {
+  if (CURRENT_NOMINAL === '15A') {
+    spawnProcedural5WayTee15A(); // 15A용 5방향 티
+  } else {
+    spawn5WayTee20A();           // 20A용 5방향 티
+  }
+}
 
+
+function spawn6WayTee() {
+  if (CURRENT_NOMINAL === '15A') {
+    spawnProcedural6WayTee15A();
+  } else {
+    spawnProcedural6WayTee20A();
+  }
+}
 
 </script>
 
