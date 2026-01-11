@@ -11,6 +11,9 @@
       font-family: sans-serif;
     }
 
+
+
+    
 /* 드롭다운 컨테이너 */
 .dropdown {
   position: relative;
@@ -1359,79 +1362,148 @@ function downloadJSON(filename, jsonObj) {
 }
 
 // ---- 저장 ----
-function saveProjectJSON() {
-  // 저장 전에 현재 상태 스택에도 남기고 싶으면 saveState() 유지
-  // (원하면 빼도 됨)
-  saveState();
+/* =================================================================
+   2026-01-11: 프로젝트 저장/불러오기 기능 긴급 수정
+      - 저장 시 JSON.stringify 적용 (파싱 에러 방지)
+      - 불러오기 시 예외 처리 강화
+   ================================================================= */
 
+// [1] 프로젝트 저장 함수 (수정됨)
+function saveProjectJSON() {
+  saveState(); // 현재 상태 백업
+
+  // 화면에 있는 부속들 데이터화
   const items = draggable.map(obj => objectToData(obj)).filter(Boolean);
 
   const payload = {
     app: "pipe3d",
     version: 1,
     savedAt: new Date().toISOString(),
-    items
+    items: items
   };
 
-  downloadJSON("pipe3d_project.json", payload);
+  // 파일명 입력
+  let fileName = prompt("프로젝트 파일 이름을 입력하세요:", "pipe3d_project");
+  if (fileName === null) return; // 취소
+
+  if (!fileName.toLowerCase().endsWith(".json")) {
+    fileName += ".json";
+  }
+
+  // ★ 핵심 수정: 객체(payload)를 문자열(JSON String)로 변환하여 넘김
+  const jsonString = JSON.stringify(payload, null, 2);
+  downloadJSON(fileName, jsonString);
 }
 
-// ---- 불러오기 ----
-function loadProjectFromJSON(payload) {
-  if (!payload || !Array.isArray(payload.items)) {
-    alert("프로젝트 JSON 형식이 올바르지 않습니다.");
+// [2] 다운로드 유틸리티 (없으면 추가, 있으면 덮어쓰기)
+function downloadJSON(fileName, content) {
+  // 내용이 객체라면 문자열로 변환 (안전장치)
+  if (typeof content !== 'string') {
+    content = JSON.stringify(content, null, 2);
+  }
+  
+  const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName;
+  link.click();
+}
+
+// [3] 프로젝트 불러오기 버튼 클릭 시 (트리거)
+function loadProjectJSON() {
+  const input = document.getElementById("projectFile");
+  if (input) {
+    input.value = ""; // 같은 파일을 다시 불러올 수 있도록 초기화
+    input.click();    // 숨겨진 파일 태그 클릭
+  } else {
+    alert("HTML에 id='projectFile'인 input 태그가 없습니다.");
+  }
+}
+
+/* =================================================================
+   2026-01-11: 프로젝트 불러오기 기능 (버그 수정판)
+      - [수정] const 변수(draggable) 재할당 오류 해결
+      - draggable = [] 대신 draggable.length = 0 사용
+   ================================================================= */
+
+window.addEventListener("DOMContentLoaded", function() {
+  // 1. 기존 UI 버튼이 건드리는 태그 ID 찾기
+  const oldInput = document.getElementById("projectFileInput");
+  
+  if (!oldInput) {
+    console.warn("⚠️ 'projectFileInput' 태그를 찾을 수 없습니다.");
     return;
   }
 
-  // 불러오기 자체도 Undo 가능하게
-  saveState();
+  // 2. 이벤트 중복 방지를 위해 태그 재생성 (초기화)
+  const newInput = oldInput.cloneNode(true);
+  oldInput.parentNode.replaceChild(newInput, oldInput);
 
-  // 씬 정리 (그리드/조명/기즈모 유지하면서 draggable만 제거)
-  draggable.forEach(o => scene.remove(o));
-  draggable.length = 0;
-  clearAllSelection();
-
-  // 복원
-  payload.items.forEach(itemData => {
-    const obj = objectFromData(itemData);
-    if (!obj) return;
-
-    scene.add(obj);
-    draggable.push(obj);
-  });
-
-  updateRotationGizmo();
-
-  // 불러온 상태를 Undo 스택에 "현재 상태"로 다시 한 번 저장하면
-  // Undo가 자연스럽게 작동함
-  saveState();
-}
-
-// ---- 파일 input 연결 ----
-(function bindProjectLoader(){
-  const input = document.getElementById("projectFileInput");
-  if (!input) return;
-
-  input.addEventListener("change", (e) => {
-    const file = e.target.files && e.target.files[0];
+  // 3. 새 태그에 이벤트 연결
+  newInput.addEventListener("change", function(e) {
+    const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
+    
+    reader.onload = function(evt) {
       try {
-        const payload = JSON.parse(reader.result);
-        loadProjectFromJSON(payload);
+        const result = evt.target.result;
+        const data = JSON.parse(result);
+
+        // 유효성 검사
+        if (!data.items || !Array.isArray(data.items)) {
+          throw new Error("올바른 프로젝트 파일이 아닙니다 (items 데이터 누락).");
+        }
+
+        // --- [수정됨] 화면 초기화 ---
+        // 씬에서 물체 제거
+        for (let i = draggable.length - 1; i >= 0; i--) {
+          scene.remove(draggable[i]);
+        }
+        
+        // ★ 핵심 수정: const 변수이므로 재할당(= [])하지 않고 길이만 0으로 만듦
+        draggable.length = 0; 
+        
+        selectedSet.clear();
+        selectedMesh = null;
+        if (typeof transformControl !== 'undefined') transformControl.detach();
+        if (typeof hideAllDimensions === 'function') hideAllDimensions();
+
+        // --- 데이터 복원 ---
+        let successCount = 0;
+        data.items.forEach(itemData => {
+          // 기존 함수 활용
+          if (typeof objectFromData === "function") {
+            const obj = objectFromData(itemData);
+            if (obj) {
+              scene.add(obj);      // 씬에 추가
+              draggable.push(obj); // 드래그 목록에 추가
+              successCount++;
+            }
+          }
+        });
+
+        // --- 마무리 ---
+        if (typeof updateRotationGizmo === 'function') updateRotationGizmo();
+        
+        alert(`${successCount}개의 부속을 불러왔습니다.`);
+
       } catch (err) {
         console.error(err);
-        alert("JSON 파싱 실패: 파일이 손상되었거나 형식이 다릅니다.");
+        alert("불러오기 실패!\n\n원인: " + err.message);
       }
     };
-    reader.readAsText(file);
 
-    // 같은 파일을 다시 선택해도 change 뜨게 초기화
-    input.value = "";
+    reader.readAsText(file);
+    newInput.value = ""; // 초기화
   });
-})();
+});
+
+
+
+
+
 
 
 function alignSelectionToAnchorCenter(opts = { axes: "xz" }) {
@@ -9349,7 +9421,10 @@ function spawn6WayTee() {
 
 </script>
 
+<div id="info">
+      </div>
 
+  <input type="file" id="projectFile" style="display:none" accept=".json">
 
 <script>
 /* =========================================================
@@ -9509,6 +9584,10 @@ window.handleGroupKey = function() {
 
 
 
+/* =================================================================
+   2026-01-11: BOM 내보내기 시 파일명 변경 기능 추가
+   ================================================================= */
+
 window.exportBOM = function() {
   // --- 보조 함수 1: 글자 길이 맞춤 ---
   const padString = (str, len) => {
@@ -9539,34 +9618,26 @@ window.exportBOM = function() {
     return out;
   };
 
-  // --- 보조 함수 3: 진짜 부품만 수집 (중복/자식 제외) ---
+  // --- 보조 함수 3: 진짜 부품만 수집 ---
   const collectRealParts = (object, targetSet) => {
     const d = object.userData || {};
-    // 부속, 파이프, 판재, STL 데이터가 있는 것만 대상
     const isComponent = d.isFitting || d.isPipe || d.isRectPlate || d.isPlate || d.stlName;
-
-    if (d.isSelectionOutline || d.isDimension) return; // 점선/치수 제외
+    if (d.isSelectionOutline || d.isDimension) return;
 
     if (isComponent) {
-      // 내 부모도 부속이라면, 나는 부속의 일부(자식)이므로 제외
       const parent = object.parent;
       const parentIsComponent = parent && parent.userData && 
                                (parent.userData.isFitting || parent.userData.isPipe || parent.userData.isPlate);
-
       if (parentIsComponent) return; 
-
       targetSet.add(object);
-      return; // 하위 탐색 중단
+      return; 
     }
-
     if (object.children && object.children.length > 0) {
       object.children.forEach(child => collectRealParts(child, targetSet));
     }
   };
 
   try {
-    console.log("🧾 자재 리스트 추출 중 (S.O. 이름/규격 보정 적용)...");
-    
     // 1. 선택 대상 수집
     const selectedItems = (selectedSet && selectedSet.size > 0) 
                           ? Array.from(selectedSet) 
@@ -9585,7 +9656,7 @@ window.exportBOM = function() {
       return;
     }
 
-    // 2. 데이터 분석 및 이름/규격 정밀 보정
+    // 2. 데이터 분석
     const bomMap = new Map();
     const THREAD_OFFSET = 20;
     const PLATE_UNIT_MULTIPLIER = 100;
@@ -9595,12 +9666,10 @@ window.exportBOM = function() {
         const data = mesh.userData || {};
         let category = "FITTING", finalName = "Unknown Part", size = "-", length = "-";
 
-        // 문자열 정규화 (대소문자 무시 비교용)
         const kind = (data.kind || "").toLowerCase();
         const subKind = (data.subKind || "").toLowerCase();
         const stlName = (data.stlName || "").toUpperCase();
 
-        // ---------------- [CASE A] 파이프 ----------------
         if (data.isPipe === true) {
           category = "PIPE";
           finalName = "Pipe";
@@ -9609,7 +9678,6 @@ window.exportBOM = function() {
           let isSTS = String(size).toUpperCase().includes("MM");
           length = (rawLength + (isSTS ? 0 : THREAD_OFFSET)) + "mm";
         } 
-        // ---------------- [CASE B] 판재 ----------------
         else if (data.isRectPlate || data.isPlate) {
           category = "PLATE";
           if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
@@ -9623,19 +9691,15 @@ window.exportBOM = function() {
           finalName = (data.plateShape === "circle") ? "Circular Plate" : "Rectangular Plate";
           size = (data.plateShape === "circle") ? `${dim[0]},${dim[2]}` : `${dim[0]},${dim[1]},${dim[2]}`;
         }
-        // ---------------- [CASE C] 배관 부속 ----------------
         else if (data.isFitting === true || data.stlName) {
           category = "FITTING";
-
-          // 1) 이름(FinalName) 결정
-          if (kind.includes("cross")) {
-             finalName = "Cross Tee";
-          } else if (kind.includes("elbow")) {
+          if (kind.includes("cross")) finalName = "Cross Tee";
+          else if (kind.includes("elbow")) {
              if (kind.includes("45") || subKind.includes("45")) finalName = "Elbow 45°";
-             else if (subKind.includes("s_o") || stlName.includes("SOELBOW")) finalName = "S.O. Elbow"; // ✅ S.O. 체크 강화
+             else if (subKind.includes("s_o") || stlName.includes("SOELBOW")) finalName = "S.O. Elbow";
              else finalName = "Elbow 90°";
           } else if (kind.includes("tee")) {
-             if (subKind.includes("s_o") || stlName.includes("SOTEE")) finalName = "S.O. Tee"; // ✅ S.O. 체크 강화
+             if (subKind.includes("s_o") || stlName.includes("SOTEE")) finalName = "S.O. Tee";
              else finalName = "Tee";
           } else if (kind.includes("cap")) finalName = "Cap";
           else if (kind.includes("reduce")) finalName = "Reducer";
@@ -9646,24 +9710,17 @@ window.exportBOM = function() {
           else if (kind.includes("plug")) finalName = "Plug";
           else finalName = data.stlName || data.name || "Fitting";
 
-          // 2) 규격(Size) 결정 및 's_o' 제거 로직
           let rawSize = data.size || data.spec || data.subKind || "-";
-          
-          // ✅ 규격에 "s_o"가 섞여있으면 stlName 등에서 진짜 규격(15A, 20A)을 추출
           if (String(rawSize).toLowerCase().includes("s_o") || rawSize === "so") {
-             // 1순위: stlName에서 "15A", "20A" 찾기
              const match = stlName.match(/([0-9]+)A/);
-             if (match) {
-               rawSize = match[0]; // "15A" or "20A"
-             } else {
-               // 2순위: 이름에 숫자가 있으면 그걸로 추정
+             if (match) rawSize = match[0];
+             else {
                if (stlName.includes("15")) rawSize = "15A";
                else if (stlName.includes("20")) rawSize = "20A";
                else if (stlName.includes("25")) rawSize = "25A";
-               else rawSize = "15A"; // 기본값
+               else rawSize = "15A";
              }
           }
-          
           size = String(rawSize).toUpperCase();
         }
 
@@ -9673,7 +9730,7 @@ window.exportBOM = function() {
       } catch (e) {}
     });
 
-    // 4. 출력
+    // 4. 출력 및 저장
     let textOutput = "========================================================\n";
     textOutput += "              [ 자재 리스트 (정밀 산출) ]              \n";
     textOutput += "========================================================\n";
@@ -9684,11 +9741,23 @@ window.exportBOM = function() {
     textOutput += drawTable("2. 파이프 (Pipes)", items.filter(i => i.category === "PIPE"));
     textOutput += drawTable("3. 판재 (Plates)", items.filter(i => i.category === "PLATE"));
 
+    // [변경 전] 고정된 이름 사용
+    // link.download = `ETE_BOM_List.txt`;
+
+    // [변경 후] 파일명 입력 받기
+    let fileName = prompt("저장할 리스트 파일 이름을 입력하세요:", "ETE_BOM_List");
+    if (fileName === null) return; // 취소 시 중단
+
+    if (!fileName.toLowerCase().endsWith(".txt")) {
+        fileName += ".txt";
+    }
+
     const blob = new Blob([textOutput], { type: "text/plain;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `ETE_BOM_List.txt`;
+    link.download = fileName;
     link.click();
+
   } catch (err) {
     alert("BOM 추출 중 오류 발생: " + err.message);
   }
@@ -9988,6 +10057,7 @@ function alignSelectionToBounds(axis, side) {
     showDimensionsSmartForSelection();
   }
 }
+
 </script>
 </body>
 </html>
