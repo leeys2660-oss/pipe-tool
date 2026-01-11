@@ -565,7 +565,7 @@ max-height: 95vh;
 <button class="top-btn" onclick="placeSelectionOnGround()" style="color: #e3eb7b;">Floor(F)</button>
 <button class="top-btn" onclick="alignSelectionToAnchorCenter({ axes: 'x' })" style="color: #e3eb7b;">Blue</button>
 <button class="top-btn" onclick="alignSelectionToAnchorCenter({ axes: 'z' })" style="color: #e3eb7b;">Red</button>
-<button class="top-btn" onclick="alignSelectionToAnchorCenter({ axes: 'y' })" style="color: #e3eb7b;">Top</button>
+<button class="top-btn" onclick="alignSelectionToBounds('y', 'max')" style="color: #e3eb7b; font-weight:bold;">Top</button>
 <button class="top-btn" onclick="alignSelectionToAnchorCenter({ axes: 'xyz' })" style="color: #e3eb7b;">Center</button>
 <button class="top-btn" onclick="snapPlateToPillarsTop()" style="color: #e3eb7b;">E.T.E</button>
 </div>
@@ -9923,6 +9923,70 @@ function placeAtCenterAndGround(obj) {
 
   // 공통 마무리: 높이(Y)를 계산해 바닥에 딱 붙임
   placeOnGround(obj);
+}
+
+
+
+/* =================================================================
+   2026-01-11: 정렬 기능 고도화 (중심 정렬 -> 끝단 정렬 지원)
+      - alignSelectionToBounds() 함수 추가
+      - Top 정렬 시 100mm(중심)가 아닌 200mm(상단)에 맞추도록 개선
+   ================================================================= */
+
+// ✅ [신규] 외곽선(Bounding Box) 기준 정렬 함수
+// axis: 'x'|'y'|'z', side: 'min'(최소) | 'max'(최대) | 'center'(중심)
+function alignSelectionToBounds(axis, side) {
+  // 1. 선택 개체 확인
+  const targets = (selectedSet && selectedSet.size > 0) 
+                  ? Array.from(selectedSet) 
+                  : (selectedMesh ? [selectedMesh] : []);
+
+  if (targets.length < 2) {
+    alert("기준(첫번째) + 이동할 개체(두번째 이상)를 선택하세요.");
+    return;
+  }
+
+  saveState();
+
+  // 2. 기준(Anchor) = 첫 번째 선택한 객체
+  const anchor = targets[0];
+  
+  // 기준의 BoundingBox 계산
+  // (점선 윤곽선 제외하고 본체 크기만 계산하는 유틸 사용)
+  const anchorBox = getWorldBoxIgnoreOutline(anchor) || new THREE.Box3().setFromObject(anchor);
+  
+  // 기준값 찾기 (예: Top 정렬이면 max.y)
+  let targetVal = 0;
+  if (side === 'max') targetVal = anchorBox.max[axis];
+  else if (side === 'min') targetVal = anchorBox.min[axis];
+  else {
+    // center
+    targetVal = (anchorBox.max[axis] + anchorBox.min[axis]) / 2;
+  }
+
+  // 3. 나머지 객체들을 이동
+  for (let i = 1; i < targets.length; i++) {
+    const mover = targets[i];
+    const moverBox = getWorldBoxIgnoreOutline(mover) || new THREE.Box3().setFromObject(mover);
+
+    let currentVal = 0;
+    if (side === 'max') currentVal = moverBox.max[axis];
+    else if (side === 'min') currentVal = moverBox.min[axis];
+    else currentVal = (moverBox.max[axis] + moverBox.min[axis]) / 2;
+
+    const diff = targetVal - currentVal;
+
+    // 해당 축으로 이동
+    mover.position[axis] += diff;
+
+    // 포트/치수 등 업데이트
+    if (typeof updatePortVisuals === "function") updatePortVisuals(mover);
+  }
+
+  updateRotationGizmo();
+  if (dimensionEnabled && typeof showDimensionsSmartForSelection === "function") {
+    showDimensionsSmartForSelection();
+  }
 }
 </script>
 </body>
