@@ -9874,33 +9874,54 @@ window.addEventListener("keydown", (e) => {
 
 
 /* =================================================================
-   2026-01-11: 부속 생성 위치 변경 (0,0,0 -> 화면 중앙)
-      - placeAtCenterAndGround() 함수 추가
-      - 주요 생성 함수(STL, Pipe, Fitting)에 적용
+   2026-01-11: 부속 생성 위치 로직 개선 (스마트 배치)
+      - 선택된 객체가 있으면 -> 그 객체의 X,Z 중심 위치에 생성
+      - 선택된 객체가 없으면 -> 화면 중앙(Looking At)에 생성
    ================================================================= */
 
-/* ✅ [신규 기능] 화면 중앙(Looking At) 지점에 객체 배치 + 바닥 안착 */
 function placeAtCenterAndGround(obj) {
-  // 1. 화면 정중앙(0, 0) 기준 Raycaster 생성
-  const ray = new THREE.Raycaster();
-  ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+  // 1. 현재 선택된 개체들이 있는지 확인
+  const targets = (selectedSet && selectedSet.size > 0) 
+                  ? Array.from(selectedSet) 
+                  : (selectedMesh ? [selectedMesh] : []);
 
-  // 2. 바닥 평면 (Y=0, Normal=[0,1,0]) 정의
-  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  const target = new THREE.Vector3();
-
-  // 3. 교차점 계산
-  if (ray.ray.intersectPlane(groundPlane, target)) {
-    // 바닥과 만나는 지점이 있으면 그 X, Z 좌표 사용
-    obj.position.set(target.x, target.y, target.z);
+  if (targets.length > 0) {
+    // 🎯 [CASE A] 선택된 개체가 있음 -> 그 위치(X, Z)로 이동
+    // 여러 개를 선택했더라도 전체를 감싸는 중심점을 계산합니다.
+    const box = new THREE.Box3();
+    targets.forEach(t => {
+        if (!t) return;
+        // 정확한 월드 박스 계산
+        const b = new THREE.Box3().setFromObject(t);
+        box.union(b);
+    });
+    
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    
+    // 선택된 개체의 중심 좌표(X, Z)로 이동 (Y는 바닥에 붙이기 위해 0으로)
+    obj.position.set(center.x, 0, center.z);
+    
   } else {
-    // 하늘을 보고 있어서 바닥과 안 만나면? -> 카메라 앞 30 거리(적당한 거리) 공중에 배치
-    const dist = 30; 
-    ray.ray.at(dist, target);
-    obj.position.set(target.x, target.y, target.z);
+    // 🌐 [CASE B] 선택된 개체 없음 -> 기존처럼 화면 중앙 바닥(Raycasting)
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+    
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const target = new THREE.Vector3();
+
+    // 바닥과 교차점 계산
+    if (ray.ray.intersectPlane(groundPlane, target)) {
+      obj.position.set(target.x, target.y, target.z);
+    } else {
+      // 하늘을 보고 있다면 카메라 앞 30 거리
+      const dist = 30; 
+      ray.ray.at(dist, target);
+      obj.position.set(target.x, target.y, target.z);
+    }
   }
 
-  // 4. X, Z는 정해졌으니 Y축(높이)은 바닥에 딱 붙게 보정 (기존 placeOnGround 재활용)
+  // 공통 마무리: 높이(Y)를 계산해 바닥에 딱 붙임
   placeOnGround(obj);
 }
 </script>
