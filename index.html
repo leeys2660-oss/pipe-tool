@@ -3713,7 +3713,7 @@ function spawnSelected(){
 mesh.userData.kind    = "generic";
   mesh.userData.stlName = data.name;
 
-  placeOnGround(mesh);
+  placeAtCenterAndGround(mesh);
 
    scene.add(mesh);
   draggable.push(mesh);
@@ -3882,7 +3882,7 @@ window.spawnProceduralSocket15A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -3992,7 +3992,7 @@ window.spawnProceduralElbow15A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -4138,7 +4138,7 @@ window.spawnProcedural45Elbow15A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -4280,7 +4280,7 @@ window.spawnProceduralTee15A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -4421,7 +4421,7 @@ window.spawnProceduralCrossTee15A = function() {
   mainMesh.name = "CrossTee15A";
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -4573,7 +4573,7 @@ window.spawnProceduralSOTee15A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -4707,7 +4707,7 @@ window.spawnProcedural5WayTee15A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -4788,7 +4788,7 @@ window.spawnProcedural6WayTee15A = function() {
 
   // 기존 소환 로직 직접 포함
   mainMesh.children.forEach(child => { child.userData = Object.assign({}, mainMesh.userData); });
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -4939,7 +4939,7 @@ window.spawnProceduralSOElbow15A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -5089,7 +5089,7 @@ window.spawnProceduralFlange15A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -5213,7 +5213,7 @@ window.spawnProceduralReducer20A15A = function() {
   mainMesh.children.forEach(c => c.userData = Object.assign({}, mainMesh.userData));
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -5325,7 +5325,7 @@ window.spawnProceduralUnion15A = function() {
       child.userData = Object.assign({}, mainMesh.userData);
   });
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -5427,7 +5427,7 @@ window.spawnProceduralPlug15A = function() {
       child.userData = Object.assign({}, mainMesh.userData);
   });
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -5536,7 +5536,7 @@ window.spawnProceduralBushing20A15A = function() {
       child.userData = Object.assign({}, mainMesh.userData);
   });
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -5643,7 +5643,7 @@ window.spawnProceduralCap15A = function() {
       child.userData = Object.assign({}, mainMesh.userData);
   });
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -5758,7 +5758,7 @@ window.spawnProceduralSocket20A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -5875,7 +5875,7 @@ window.spawnProceduralElbow20A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -6020,7 +6020,7 @@ window.spawnProcedural45Elbow20A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -6153,7 +6153,7 @@ window.spawnProceduralTee20A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+ placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -6294,7 +6294,7 @@ window.spawnProceduralCrossTee20A = function() {
   mainMesh.name = "CrossTee20A";
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -6421,7 +6421,7 @@ window.spawnProceduralSOTee20A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -6556,7 +6556,7 @@ window.spawn5WayTee20A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -6638,7 +6638,7 @@ window.spawnProcedural6WayTee20A = function() {
   };
 
   mainMesh.children.forEach(child => { child.userData = Object.assign({}, mainMesh.userData); });
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -6758,7 +6758,7 @@ window.spawnProceduralSOElbow20A = function() {
   });
 
   // --- 5. 배치 ---
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
 
@@ -6885,7 +6885,7 @@ window.spawnProceduralFlange20A = function() {
       child.userData = Object.assign({}, mainMesh.userData);
   });
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -6983,7 +6983,7 @@ window.spawnProceduralReducer25A20A = function() {
 
   mainMesh.children.forEach(c => c.userData = Object.assign({}, mainMesh.userData));
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -7081,7 +7081,7 @@ window.spawnProceduralUnion20A = function() {
       child.userData = Object.assign({}, mainMesh.userData);
   });
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -7171,7 +7171,7 @@ window.spawnProceduralPlug20A = function() {
       child.userData = Object.assign({}, mainMesh.userData);
   });
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -7274,7 +7274,7 @@ window.spawnProceduralBushing25A20A = function() {
       child.userData = Object.assign({}, mainMesh.userData);
   });
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -7371,7 +7371,7 @@ window.spawnProceduralCap20A = function() {
       child.userData = Object.assign({}, mainMesh.userData);
   });
 
-  placeOnGround(mainMesh);
+  placeAtCenterAndGround(mainMesh);
   scene.add(mainMesh);
   draggable.push(mainMesh);
   clearAllSelection();
@@ -7468,7 +7468,7 @@ function addMmCubeFitting(sizeMm) {
   ];
 
   // ── Scene 등록 ──
-  placeOnGround(cube);
+  placeAtCenterAndGround(cube);
   scene.add(cube);
   draggable.push(cube);
 
@@ -7538,7 +7538,7 @@ const mat = new THREE.MeshStandardMaterial({
   plate.userData.heightMm = hMm;
   plate.userData.thickMm  = tMm;
 
-  placeOnGround(plate);
+  placeAtCenterAndGround(plate);
 
   scene.add(plate);
   draggable.push(plate);
@@ -7612,7 +7612,7 @@ function addCirclePlate(diaMm, thkMm) {
   mesh.userData.diameterMm    = d;
   mesh.userData.thicknessMm   = t;
 
-  placeOnGround(mesh);       // 바닥(y=0)에 올려놓기
+  placeAtCenterAndGround(mesh);      // 바닥(y=0)에 올려놓기
 
   scene.add(mesh);
   draggable.push(mesh);
@@ -7788,8 +7788,7 @@ if (od === 12 || od === 15) {
   pipe.userData.lengthMm = lenMm;
   pipe.userData.radiusMm = od / 2;
 
-  placeOnGround(pipe);
-
+  placeAtCenterAndGround(pipe);
   scene.add(pipe);
   draggable.push(pipe);
 
@@ -9871,6 +9870,39 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
+
+
+
+/* =================================================================
+   2026-01-11: 부속 생성 위치 변경 (0,0,0 -> 화면 중앙)
+      - placeAtCenterAndGround() 함수 추가
+      - 주요 생성 함수(STL, Pipe, Fitting)에 적용
+   ================================================================= */
+
+/* ✅ [신규 기능] 화면 중앙(Looking At) 지점에 객체 배치 + 바닥 안착 */
+function placeAtCenterAndGround(obj) {
+  // 1. 화면 정중앙(0, 0) 기준 Raycaster 생성
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+  // 2. 바닥 평면 (Y=0, Normal=[0,1,0]) 정의
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const target = new THREE.Vector3();
+
+  // 3. 교차점 계산
+  if (ray.ray.intersectPlane(groundPlane, target)) {
+    // 바닥과 만나는 지점이 있으면 그 X, Z 좌표 사용
+    obj.position.set(target.x, target.y, target.z);
+  } else {
+    // 하늘을 보고 있어서 바닥과 안 만나면? -> 카메라 앞 30 거리(적당한 거리) 공중에 배치
+    const dist = 30; 
+    ray.ray.at(dist, target);
+    obj.position.set(target.x, target.y, target.z);
+  }
+
+  // 4. X, Z는 정해졌으니 Y축(높이)은 바닥에 딱 붙게 보정 (기존 placeOnGround 재활용)
+  placeOnGround(obj);
+}
 </script>
 </body>
 </html>
