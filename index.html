@@ -3804,14 +3804,39 @@ mesh.userData.kind    = "generic";
 
 /* ========== 내장 부속 생성들 ========== */
 //파이프 길이 수정//
+/* =================================================================
+   2026-01-12: 파이프 리사이즈 기능 고도화
+      - [다중/그룹 지원] 선택된 모든 파이프를 찾아 일괄 적용
+      - [한쪽 고정] 길이 변경 시 중심점을 이동시켜 한쪽 끝을 고정함
+   ================================================================= */
 function resizeSelectedPipePrompt() {
-  if (!selectedMesh || !selectedMesh.userData?.isPipe) {
-    alert("길이를 수정할 파이프를 선택하세요.");
+  // 1. 선택된 대상에서 모든 '파이프' 수집 (그룹 내부 포함)
+  const targets = (selectedSet.size > 0) ? Array.from(selectedSet) : (selectedMesh ? [selectedMesh] : []);
+  const pipesToResize = [];
+
+  targets.forEach(obj => {
+    if (obj.userData?.isPipe) {
+      pipesToResize.push(obj);
+    } else if (obj instanceof THREE.Group) {
+      obj.traverse(child => {
+        if (child.userData?.isPipe) pipesToResize.push(child);
+      });
+    }
+  });
+
+  if (pipesToResize.length === 0) {
+    alert("길이를 변경할 파이프가 선택되지 않았습니다.");
     return;
   }
 
-  const cur = selectedMesh.userData.lengthMm || 100;
-  const input = prompt("새 파이프 길이(mm)", cur);
+  // 2. 입력 받기 (첫 번째 파이프의 길이를 기본값으로)
+  const firstLen = pipesToResize[0].userData.lengthMm || 100;
+  const count = pipesToResize.length;
+  const msg = (count > 1) 
+    ? `선택된 파이프 ${count}개의 새 길이(mm)를 입력하세요.` 
+    : "새 파이프 길이(mm)를 입력하세요.";
+
+  const input = prompt(msg, firstLen);
   if (input === null) return;
 
   const newLenMm = parseFloat(input);
@@ -3820,30 +3845,47 @@ function resizeSelectedPipePrompt() {
     return;
   }
 
-  saveState();
+  saveState(); // 실행 취소(Undo) 저장
 
-  const radiusMm =
-    selectedMesh.userData.radiusMm ||
-    (KS_OD[selectedMesh.userData.size] / 2);
+  // 3. 일괄 적용
+  pipesToResize.forEach(pipe => {
+    const oldLenMm = parseFloat(pipe.userData.lengthMm) || 100;
+    
+    // 길이 변화량
+    const diffMm = newLenMm - oldLenMm;
+    if (Math.abs(diffMm) < 0.001) return; // 변화 없으면 패스
 
-  const radiusUnits = radiusMm / MM_PER_UNIT;
-  const lenUnits = newLenMm / MM_PER_UNIT;
+    // (A) 지오메트리 교체 (기존 로직: 중심 기준 늘어남)
+    const radiusMm = pipe.userData.radiusMm || (KS_OD[pipe.userData.size] / 2);
+    const radiusUnits = radiusMm / MM_PER_UNIT;
+    const lenUnits = newLenMm / MM_PER_UNIT;
 
-  const geo = new THREE.CylinderGeometry(
-    radiusUnits,
-    radiusUnits,
-    lenUnits,
-    24
-  );
+    const newGeo = new THREE.CylinderGeometry(radiusUnits, radiusUnits, lenUnits, 24);
+    pipe.geometry.dispose();
+    pipe.geometry = newGeo;
+    pipe.userData.lengthMm = newLenMm;
 
-  selectedMesh.geometry.dispose();
-  selectedMesh.geometry = geo;
-  selectedMesh.userData.lengthMm = newLenMm;
+    // (B) [핵심] 위치 보정: 한쪽 끝 고정하기
+    // 파이프는 로컬 Y축 방향으로 생성됩니다. (0,1,0)
+    // 길이가 늘어날 때 중심점도 늘어난 길이의 절반만큼 이동시키면, 반대쪽 끝은 제자리에 있게 됩니다.
+    
+    // 파이프의 현재 방향(로컬 Y축)을 월드 벡터로 변환
+    const upVec = new THREE.Vector3(0, 1, 0).applyQuaternion(pipe.quaternion).normalize();
+    
+    // 이동해야 할 거리: (새 길이 - 옛 길이) / 2
+    // diffMm이 양수(늘어남)면 +Y 방향으로 밀고, 음수(줄어듦)면 -Y 방향으로 당김 -> 밑바닥 고정 효과
+    const shiftDist = (diffMm / MM_PER_UNIT) / 2;
+    
+    pipe.position.addScaledVector(upVec, shiftDist);
+  });
 
   updateRotationGizmo();
-  if (dimensionEnabled) showDimensionsForSelection(selectedMesh);
-
+  if (dimensionEnabled && typeof showDimensionsSmartForSelection === "function") {
+    showDimensionsSmartForSelection();
+  }
 }
+
+
 
 
 
@@ -8562,168 +8604,197 @@ canvas.addEventListener("touchend", (e) => {
 
 
 /* ========== 마우스 이벤트 ========== */
+/* ========== 마우스 이벤트 ========== */
 canvas.addEventListener("mousedown", e => {
-  lastX = e.clientX;
-  lastY = e.clientY;
+  lastX = e.clientX;
+  lastY = e.clientY;
 
-  // 가운데 버튼 (휠 클릭): 평행이동(Pan) / Shift+클릭시 높이이동(Elevate)
-  if (e.button === 1) {
-    e.preventDefault();
-    dragging = true;
-    
-    // [수정됨] 뒤에 붙어있던 'orbit' 글자 삭제함
-    dragMode = e.shiftKey ? "elevate" : "pan"; 
-    return;
-  }
+  // 가운데 버튼 (휠 클릭): 평행이동(Pan) / Shift+클릭시 높이이동(Elevate)
+  if (e.button === 1) {
+    e.preventDefault();
+    dragging = true;
+    
+    // [수정됨] 뒤에 붙어있던 'orbit' 글자 삭제함
+    dragMode = e.shiftKey ? "elevate" : "pan"; 
+    return;
+  }
 
-  // 오른쪽 버튼: 회전(Orbit)
-  if (e.button === 2) {
-    e.preventDefault();
-    dragging = true;
-    dragMode = "orbit";
-    return;
-  }
+  // 오른쪽 버튼: 회전(Orbit)
+  if (e.button === 2) {
+    e.preventDefault();
+    dragging = true;
+    dragMode = "orbit";
+    return;
+  }
 
 
-  
+  
 
-  // 왼쪽 버튼만 아래 로직 진행 (선택, 생성 등)
-  if (e.button !== 0) return;
+  // 왼쪽 버튼만 아래 로직 진행 (선택, 생성 등)
+  if (e.button !== 0) return;
 
-  setMouseFromEvent(e);
+  setMouseFromEvent(e);
 
-  // 회전 Gizmo
-  if (rotationGizmo && rotationGizmo.visible && gizmoEnabled && (hitRingX || hitRingY || hitRingZ)) {
-    raycaster.setFromCamera(mouse, camera);
-    const gizmoHits = raycaster.intersectObjects([hitRingX, hitRingY, hitRingZ], true);
+  // 회전 Gizmo
+  if (rotationGizmo && rotationGizmo.visible && gizmoEnabled && (hitRingX || hitRingY || hitRingZ)) {
+    raycaster.setFromCamera(mouse, camera);
+    const gizmoHits = raycaster.intersectObjects([hitRingX, hitRingY, hitRingZ], true);
 
-    if (gizmoHits.length > 0 && (selectedMesh || selectedSet.size > 0)) {
-      const hitObj = gizmoHits[0].object;
-      const axis = hitObj.userData.axis || "y";
-      rotateAxis = axis;
+    if (gizmoHits.length > 0 && (selectedMesh || selectedSet.size > 0)) {
+      const hitObj = gizmoHits[0].object;
+      const axis = hitObj.userData.axis || "y";
+      rotateAxis = axis;
 
-      // 이번 회전에 사용할 월드 축
-      if (rotateAxis === "x")      rotateWorldAxis.set(1, 0, 0);
-      else if (rotateAxis === "y") rotateWorldAxis.set(0, 1, 0);
-      else if (rotateAxis === "z") rotateWorldAxis.set(0, 0, 1);
+      // 이번 회전에 사용할 월드 축
+      if (rotateAxis === "x")      rotateWorldAxis.set(1, 0, 0);
+      else if (rotateAxis === "y") rotateWorldAxis.set(0, 1, 0);
+      else if (rotateAxis === "z") rotateWorldAxis.set(0, 0, 1);
 
-      saveState();
-      dragging = true;
-      dragMode = "rotate";
+      saveState();
+      dragging = true;
+      dragMode = "rotate";
 
-      // 회전 중심(화면 좌표)
-      const centerWorld = rotationGizmo.position.clone();
-      const proj = centerWorld.project(camera);
-      rotateCenterScreen.set(
-        ( proj.x * 0.5 + 0.5 ) * window.innerWidth,
-        (-proj.y * 0.5 + 0.5 ) * window.innerHeight
-      );
+      // 회전 중심(화면 좌표)
+      const centerWorld = rotationGizmo.position.clone();
+      const proj = centerWorld.project(camera);
+      rotateCenterScreen.set(
+        ( proj.x * 0.5 + 0.5 ) * window.innerWidth,
+        (-proj.y * 0.5 + 0.5 ) * window.innerHeight
+      );
 
-      const sx = e.clientX;
-      const sy = e.clientY;
-      rotateStartAngle = Math.atan2(sy - rotateCenterScreen.y, sx - rotateCenterScreen.x);
+      const sx = e.clientX;
+      const sy = e.clientY;
+      rotateStartAngle = Math.atan2(sy - rotateCenterScreen.y, sx - rotateCenterScreen.x);
 
-      // 초기 쿼터니언 저장
-      initialRotations.clear();
-      const targets = selectedSet.size > 0 ? [...selectedSet] : [selectedMesh];
-      targets.forEach(o => {
-        initialRotations.set(o, o.quaternion.clone());
-      });
+      // 초기 쿼터니언 저장
+      initialRotations.clear();
+      const targets = selectedSet.size > 0 ? [...selectedSet] : [selectedMesh];
+      targets.forEach(o => {
+        initialRotations.set(o, o.quaternion.clone());
+      });
 
-      hoveredAxis = rotateAxis;
-      updateRingHoverVisuals(hoveredAxis);
+      hoveredAxis = rotateAxis;
+      updateRingHoverVisuals(hoveredAxis);
 
-      if (angleUI) {
-        angleUI.style.display = "block";
-        angleUI.textContent = rotateAxis.toUpperCase() + " 0°";
-        angleUI.style.left = rotateCenterScreen.x + "px";
-        angleUI.style.top  = (rotateCenterScreen.y - 60) + "px";
-      }
-      return;
-    }
-  }
+      if (angleUI) {
+        angleUI.style.display = "block";
+        angleUI.textContent = rotateAxis.toUpperCase() + " 0°";
+        angleUI.style.left = rotateCenterScreen.x + "px";
+        angleUI.style.top  = (rotateCenterScreen.y - 60) + "px";
+      }
+      return;
+    }
+  }
 
-  // 일반 선택 / 이동 / 드래그 박스
-  raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObjects(draggable, true);
+  // 일반 선택 / 이동 / 드래그 박스
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(draggable, true);
 
-  if (hits.length > 0) {
-    const hit = hits[0];
-    const target = findTopDraggable(hit.object);
+  if (hits.length > 0) {
+    const hit = hits[0];
+    const target = findTopDraggable(hit.object);
 
-    if (e.ctrlKey || e.metaKey) {
-      toggleSelect(target);
-    } else {
-      if (selectedSet.size > 1 && selectedSet.has(target)) {
-        selectedMesh = target;
-      } else {
-        selectOnly(target);
-      }
-    }
+    if (e.ctrlKey || e.metaKey) {
+      toggleSelect(target);
+    } else {
+      if (selectedSet.size > 1 && selectedSet.has(target)) {
+        selectedMesh = target;
+      } else {
+        selectOnly(target);
+      }
+    }
 
-    const anchor = selectedMesh || target;
+    const anchor = selectedMesh || target;
 
-    movePlane.set(new THREE.Vector3(0,1,0), 0);
-    raycaster.setFromCamera(mouse, camera);
-    if (raycaster.ray.intersectPlane(movePlane, planeHit)) {
-      dragOffset.copy(anchor.position).sub(planeHit);
-    } else {
-      dragOffset.set(0, anchor.position.y, 0);
-    }
+    movePlane.set(new THREE.Vector3(0,1,0), 0);
+    raycaster.setFromCamera(mouse, camera);
+    if (raycaster.ray.intersectPlane(movePlane, planeHit)) {
+      dragOffset.copy(anchor.position).sub(planeHit);
+    } else {
+      dragOffset.set(0, anchor.position.y, 0);
+    }
 
-    saveState();
-    dragging = true;
-    dragMode = "move";
+    saveState();
+    dragging = true;
+    dragMode = "move";
 
-  } else {
-    // 빈 공간 클릭 → 선택 해제 + 박스 선택 시작
-    clearAllSelection();
-    createSelectionRect(e.clientX, e.clientY, e.ctrlKey || e.metaKey);
+  } else {
+    // 빈 공간 클릭 → 선택 해제 + 박스 선택 시작
+    clearAllSelection();
+    createSelectionRect(e.clientX, e.clientY, e.ctrlKey || e.metaKey);
 
-    dragging = true;
-    dragMode = "rect";
-  }
+    dragging = true;
+    dragMode = "rect";
+  }
 });
+
+
+
+
+/* =================================================================
+   2026-01-12: 더블 클릭 이벤트 개선
+      - 다중 선택 상태에서 파이프 더블 클릭 시 선택 유지
+      - 그룹/다중 선택된 파이프 일괄 리사이즈 연결
+   ================================================================= */
 canvas.addEventListener("dblclick", (e) => {
-  // ✅ 더블클릭 지점에서 오브젝트 집기
   const rect = canvas.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
   raycaster.setFromCamera(mouse, camera);
 
-  // ✅ selection outline 같은 건 raycast 막아놨으니(너 코드에 있음) 그대로 잘 잡힘
   const hits = raycaster.intersectObjects(draggable, true);
   if (!hits.length) return;
 
-  // 최상위 draggable(부모)로 끌어올리기
+  // 최상위 객체(그룹 or 부속) 찾기
   let obj = hits[0].object;
   while (obj && !draggable.includes(obj) && obj.parent) obj = obj.parent;
   if (!obj) return;
 
-  // ✅ 더블클릭한 대상만 선택
-  selectOnly(obj);
+  // ✅ [핵심 수정] 이미 선택된 그룹/파이프를 클릭했다면 선택을 풀지 않음
+  const isAlreadySelected = selectedSet.has(obj);
+  
+  // 만약 선택되지 않은 걸 더블클릭했다면 -> 그것만 단독 선택 (기존 로직)
+  // 만약 이미 선택된 것 중 하나라면 -> 다중 선택 유지
+  if (!isAlreadySelected) {
+     selectOnly(obj);
+  }
 
-  // ✅ 타입별 치수 변경 호출
-  if (selectedMesh?.userData?.isPipe) {
+  // 1. 파이프 리사이즈 (단일/다중/그룹 모두 대응)
+  // 선택된 것들 중에 파이프가 하나라도 있으면 리사이즈 시도
+  const targets = (selectedSet.size > 0) ? [...selectedSet] : [selectedMesh];
+  const hasPipe = targets.some(t => {
+      // 본체가 파이프거나, 그룹 내부에 파이프가 있거나
+      if (t.userData?.isPipe) return true;
+      if (t instanceof THREE.Group) {
+          let found = false;
+          t.traverse(c => { if(c.userData?.isPipe) found = true; });
+          return found;
+      }
+      return false;
+  });
+
+  if (hasPipe) {
     resizeSelectedPipePrompt();
     return;
   }
 
+  // 2. 사각판 리사이즈
   if (selectedMesh?.userData?.isRectPlate) {
-    // 네 코드에 사각판 치수 변경 함수가 있으면 그걸 호출
-    // (이름이 다를 수 있어서, 아래 둘 중 네 파일에 있는 걸로 맞춰)
     if (typeof resizeSelectedRectPlatePrompt === "function") resizeSelectedRectPlatePrompt();
-    else if (typeof resizeRectPlatePrompt === "function") resizeRectPlatePrompt();
     return;
   }
 
+  // 3. 원형판 리사이즈
   if (selectedMesh?.userData?.isPlate && selectedMesh?.userData?.plateShape === "circle") {
     if (typeof resizeSelectedCirclePlatePrompt === "function") resizeSelectedCirclePlatePrompt();
-    else if (typeof resizeCirclePlatePrompt === "function") resizeCirclePlatePrompt();
     return;
   }
 });
+
+
+
+
 
 
 let lastUpTime = 0;
