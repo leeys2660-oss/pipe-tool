@@ -9657,6 +9657,7 @@ window.handleGroupKey = function() {
 
 /* =================================================================
    2026-01-11: BOM 내보내기 시 파일명 변경 기능 추가
+   2026-02-18: 5-Way, 6-Way Tee 리스트 분리 (일반 Tee와 섞이지 않도록 수정)
    ================================================================= */
 
 window.exportBOM = function() {
@@ -9764,7 +9765,11 @@ window.exportBOM = function() {
         }
         else if (data.isFitting === true || data.stlName) {
           category = "FITTING";
+          
+          // [수정 구간 시작] 부속 이름 판별 로직 강화
           if (kind.includes("cross")) finalName = "Cross Tee";
+          else if (kind.includes("5way")) finalName = "5-Way Tee"; // ✅ 5-Way 우선 확인
+          else if (kind.includes("6way")) finalName = "6-Way Tee"; // ✅ 6-Way 우선 확인
           else if (kind.includes("elbow")) {
              if (kind.includes("45") || subKind.includes("45")) finalName = "Elbow 45°";
              else if (subKind.includes("s_o") || stlName.includes("SOELBOW")) finalName = "S.O. Elbow";
@@ -9780,6 +9785,7 @@ window.exportBOM = function() {
           else if (kind.includes("bush")) finalName = "Bushing";
           else if (kind.includes("plug")) finalName = "Plug";
           else finalName = data.stlName || data.name || "Fitting";
+          // [수정 구간 끝]
 
           let rawSize = data.size || data.spec || data.subKind || "-";
           if (String(rawSize).toLowerCase().includes("s_o") || rawSize === "so") {
@@ -9812,10 +9818,7 @@ window.exportBOM = function() {
     textOutput += drawTable("2. 파이프 (Pipes)", items.filter(i => i.category === "PIPE"));
     textOutput += drawTable("3. 판재 (Plates)", items.filter(i => i.category === "PLATE"));
 
-    // [변경 전] 고정된 이름 사용
-    // link.download = `ETE_BOM_List.txt`;
-
-    // [변경 후] 파일명 입력 받기
+    // 파일명 입력 받기
     let fileName = prompt("저장할 리스트 파일 이름을 입력하세요:", "ETE_BOM_List");
     if (fileName === null) return; // 취소 시 중단
 
