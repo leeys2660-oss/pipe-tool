@@ -582,6 +582,7 @@ max-height: 95vh;
     <button class="top-btn" onclick="handleGroupKey()" style="color: #61dafb;">Group(G)</button>
   <button class="top-btn" onclick="toggleDimensionUI()" style="color: #61dafb;">Dim(D)</button>
   <button class="top-btn" onclick="gizmoEnabled=!gizmoEnabled; updateRotationGizmo();"  style="color: #61dafb;">Rotate(R)</button>
+  <button class="top-btn" onclick="moveSelectionByMmPrompt()" style="color: #ffbbf0;">Move(M)</button>
 
 
     <button class="top-btn" onclick="undo()" style="color: #ff7070;">↩</button>
@@ -677,11 +678,21 @@ max-height: 95vh;
 </div>
 <div class="ui-group">
   <div class="ui-header">Module</div>
-
   <div class="grid-2">
-<button onclick="addMmCubeFitting(12)" style="color: #9ab2ff;">12mm</button>
-<button onclick="addMmCubeFitting(15)" style="color: #9ab2ff;">15mm</button>
-    </div>
+    <button onclick="addMmCubeFitting(12)" style="color: #9ab2ff;">12mm</button>
+    <button onclick="addMmCubeFitting(15)" style="color: #9ab2ff;">15mm</button>
+  </div>
+</div>
+
+<div class="ui-group">
+  <div class="ui-header">Pinnect (20A)</div>
+  <div class="grid-2">
+    <button onclick="spawnPinnectDK_Tee20A()" style="color: #ffda75;">Tee DKA33</button>
+    <button onclick="spawnPinnectDK_Elbow20A()" style="color: #ffda75;">90°Elbow DKA02</button>
+    <button onclick="spawnPinnectDK_SOTee20A()" style="color: #ffda75;">S.O.Tee DKA14</button>
+    <button onclick="spawnPinnectDK_SOElbow20A()" style="color: #ffda75;">S.O.Elbow DKA07</button>
+    <button onclick="spawnPinnectDK_5Way20A()" style="color: #ffda75;">5-Way Tee DKA16</button>
+  </div>
 </div>
 
 
@@ -7498,6 +7509,459 @@ window.spawnProceduralCap20A = function() {
 
 
 
+
+
+/* =================================================================
+   2026-04-26: 파이넥트(Pinnect) 조립식 피팅 기능 추가
+   2026-04-27: 파이넥트 폴리곤(각진 디자인) 최적화 및 플랫 셰이딩 적용
+      - [Design] flatShading: true 적용으로 기계 가공된 금속 질감 표현
+      - [Design] BODY_SEGMENTS 변수를 통해 원통의 각진 정도를 쉽게 조절 가능하도록 수정
+   ================================================================= */
+
+// 🔧 1. 파이넥트 전용 '볼트' 생성 헬퍼 함수
+/* =================================================================
+   2026-04-26: 파이넥트(Pinnect) 조립식 피팅 기능 추가
+   2026-04-27: 파이넥트 볼트 위치 및 방향 오류 전면 수정 (완전체)
+   2026-04-27: 볼트(세트스크류) 규격 수정 및 공중에 뜨는 버그 해결
+      - [Fix] 강제 +0.01 오프셋 제거 및 중심점 기반 완벽 밀착 수학 공식 적용
+   ================================================================= */
+
+// 🔧 1. 파이넥트 전용 '볼트' 생성 헬퍼 함수
+window.createPinnectSetScrew = function(mat) {
+  const MM_PER_UNIT = 100;
+  
+  // 요청하신 규격 적용
+  const rBoss = 0 / MM_PER_UNIT;    // 돌출부(보스) 반경
+  const hBoss = 0 / MM_PER_UNIT;    // 돌출부 높이
+  const rScrew = 0 / MM_PER_UNIT; // 검은색 무두볼트 반경
+  const hScrew = 0 / MM_PER_UNIT;   // 볼트 높이
+
+  // 은색 보스
+  const bossGeo = new THREE.CylinderGeometry(rBoss, rBoss, hBoss, 12);
+  const boss = new THREE.Mesh(bossGeo, mat);
+
+  // 검은색 나사
+  const screwMat = new THREE.MeshStandardMaterial({ 
+      color: 0x111111, roughness: 0.8, flatShading: true 
+  });
+  const screwGeo = new THREE.CylinderGeometry(rScrew, rScrew, hScrew, 6);
+  const screw = new THREE.Mesh(screwGeo, screwMat);
+  
+  // ✅ [수정됨] 허공에 뜨지 않도록 수학적으로 완벽히 밀착시킴
+  // 보스의 절반 높이(윗면) + 나사의 절반 높이(나사 중심점)
+  screw.position.y = (hBoss / 2) + (hScrew / 2); 
+  
+  // 혹시라도 살짝 파묻히게 해서 경계선을 깔끔하게 하고 싶다면 아래처럼 -0.001을 해주셔도 됩니다.
+  // screw.position.y = (hBoss / 2) + (hScrew / 2) - 0.001; 
+
+  boss.add(screw);
+
+  // 옆면에 쉽게 붙일 수 있도록 눕혀둠
+  boss.rotation.x = Math.PI / 2;
+  return boss;
+};
+
+// 🔧 2. DK-01 (Tee) DKA33
+window.spawnPinnectDK_Tee20A = function() {
+  saveState();
+  const MM_PER_UNIT = 100;
+
+  // =========================================================
+  // 🛠️ [치수 및 디자인 설정 구역]
+  // =========================================================
+  const BODY_DIA_MM = 36;    
+  const RUN_LEN_MM = 30;     
+  const BRANCH_LEN_MM = 42;  
+  const BOLT_INSET_MM = 10;  
+  
+  // ✨ [NEW] 원통의 각진 정도 (기본값: 16)
+  // 8: 팔각형, 12: 십이각형(추천), 16: 아주 살짝 각짐, 32: 완전 매끄러움
+  const BODY_SEGMENTS = 16;  
+  // =========================================================
+
+  const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
+  const runFace = RUN_LEN_MM / MM_PER_UNIT;
+  const branchFace = BRANCH_LEN_MM / MM_PER_UNIT;
+  const boltInset = BOLT_INSET_MM / MM_PER_UNIT;
+
+  // ✨ [NEW] flatShading: true 를 켜면 면의 각이 살아납니다.
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x666666, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide,
+    flatShading: true 
+  });
+
+  const runLen = runFace * 2; 
+  const mainMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, runLen, BODY_SEGMENTS), mat);
+  mainMesh.rotation.z = -Math.PI / 2;
+
+  const branchMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, branchFace, BODY_SEGMENTS), mat);
+  branchMesh.rotation.z = -Math.PI / 2; 
+  branchMesh.position.x = branchFace / 2; 
+  mainMesh.add(branchMesh);
+
+  const runBoltOffset = runFace - boltInset;       
+  const branchBoltOffset = branchFace - boltInset; 
+
+  const boltRight = window.createPinnectSetScrew(mat);
+  boltRight.position.set(0, runBoltOffset, rBody); 
+  mainMesh.add(boltRight);
+
+  const boltLeft = window.createPinnectSetScrew(mat);
+  boltLeft.position.set(0, -runBoltOffset, rBody); 
+  mainMesh.add(boltLeft);
+
+  const boltBranch = window.createPinnectSetScrew(mat);
+  boltBranch.position.set(branchBoltOffset, 0, rBody); 
+  mainMesh.add(boltBranch);
+
+  mainMesh.name = "Pinnect_DK01_20A";
+  mainMesh.userData = {
+      isFitting: true, isPipe: false, kind: "tee", subKind: "20a_dk", stlName: "DK01_Tee",
+      snapPoints: [
+        { pos: [0, runFace, 0], normal: [0, 1, 0] },      
+        { pos: [0, -runFace, 0], normal: [0, -1, 0] },    
+        { pos: [branchFace, 0, 0], normal: [1, 0, 0] }    
+      ],
+      threadCenters: { port1: [0, runFace, 0], port2: [0, -runFace, 0], port3: [branchFace, 0, 0] }
+  };
+
+  mainMesh.children.forEach(c => c.userData = Object.assign({}, mainMesh.userData));
+  placeAtCenterAndGround(mainMesh);
+  scene.add(mainMesh);
+  draggable.push(mainMesh);
+  clearAllSelection();
+  selectedSet.add(mainMesh);
+  markSelected(mainMesh);
+  selectedMesh = mainMesh;
+  if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
+  updateRotationGizmo();
+};
+
+// 🔧 3. DK-02 (Elbow) DKA02
+window.spawnPinnectDK_Elbow20A = function() {
+  saveState();
+  const MM_PER_UNIT = 100;
+
+  // =========================================================
+  const FACE_POS_MM = 42; 
+  const BODY_DIA_MM = 36; 
+  const BOLT_INSET_MM = 10;
+  const BODY_SEGMENTS = 16; // ✨ 각진 정도
+  // =========================================================
+
+  const FACE_POS = FACE_POS_MM / MM_PER_UNIT;    
+  const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT; 
+  const boltOffset = FACE_POS - (BOLT_INSET_MM / MM_PER_UNIT); 
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x666666, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide,
+    flatShading: true // ✨ 각진 면 강조
+  });
+
+  // 구(Sphere)도 각지게 생성
+  const mainMesh = new THREE.Mesh(new THREE.SphereGeometry(rBody, BODY_SEGMENTS, BODY_SEGMENTS), mat);
+
+  const armGeo = new THREE.CylinderGeometry(rBody, rBody, FACE_POS, BODY_SEGMENTS);
+  armGeo.translate(0, FACE_POS / 2, 0); 
+
+  const armX = new THREE.Mesh(armGeo, mat);
+  armX.rotation.z = -Math.PI / 2;
+  mainMesh.add(armX);
+
+  const armY = new THREE.Mesh(armGeo, mat);
+  mainMesh.add(armY);
+
+  const boltX = window.createPinnectSetScrew(mat);
+  boltX.position.set(boltOffset, 0, rBody);
+  mainMesh.add(boltX);
+
+  const boltY = window.createPinnectSetScrew(mat);
+  boltY.position.set(0, boltOffset, rBody);
+  mainMesh.add(boltY);
+
+  mainMesh.name = "Pinnect_DK02_20A";
+  mainMesh.userData = {
+      isFitting: true, isPipe: false, kind: "elbow", subKind: "20a_dk", stlName: "DK02_Elbow",
+      snapPoints: [
+        { pos: [FACE_POS, 0, 0], normal: [1, 0, 0] },
+        { pos: [0, FACE_POS, 0], normal: [0, 1, 0] }
+      ],
+      threadCenters: { port1: [FACE_POS, 0, 0], port2: [0, FACE_POS, 0] }
+  };
+
+  mainMesh.children.forEach(c => c.userData = Object.assign({}, mainMesh.userData));
+  placeAtCenterAndGround(mainMesh);
+  scene.add(mainMesh);
+  draggable.push(mainMesh);
+  clearAllSelection();
+  selectedSet.add(mainMesh);
+  markSelected(mainMesh);
+  selectedMesh = mainMesh;
+  if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
+  updateRotationGizmo();
+};
+
+// 🔧 4. DK-SOTee (4구 S.O.Tee) DKA14
+window.spawnPinnectDK_SOTee20A = function() {
+  saveState();
+  const MM_PER_UNIT = 100;
+
+  // =========================================================
+  const BODY_DIA_MM = 36;    
+  const RUN_LEN_MM = 30;     
+  const BRANCH_LEN_MM = 42;  
+  const BOLT_INSET_MM = 10;  
+  const BODY_SEGMENTS = 16; // ✨ 각진 정도
+  // =========================================================
+
+  const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
+  const runFace = RUN_LEN_MM / MM_PER_UNIT;
+  const branchFace = BRANCH_LEN_MM / MM_PER_UNIT;
+  const boltInset = BOLT_INSET_MM / MM_PER_UNIT;
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x666666, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide,
+    flatShading: true // ✨ 각진 면 강조
+  });
+
+  const runLen = runFace * 2; 
+  const mainMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, runLen, BODY_SEGMENTS), mat);
+  mainMesh.rotation.z = -Math.PI / 2; 
+
+  const topMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, branchFace, BODY_SEGMENTS), mat);
+  topMesh.rotation.z = -Math.PI / 2; 
+  topMesh.position.x = branchFace / 2; 
+  mainMesh.add(topMesh);
+
+  const sideMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, branchFace, BODY_SEGMENTS), mat);
+  sideMesh.rotation.x = Math.PI / 2; 
+  sideMesh.position.z = branchFace / 2; 
+  mainMesh.add(sideMesh);
+
+  const runBoltOffset = runFace - boltInset;       
+  const branchBoltOffset = branchFace - boltInset; 
+
+  const boltRight = window.createPinnectSetScrew(mat);
+  boltRight.position.set(0, runBoltOffset, rBody); 
+  mainMesh.add(boltRight);
+
+  const boltLeft = window.createPinnectSetScrew(mat);
+  boltLeft.position.set(0, -runBoltOffset, rBody); 
+  mainMesh.add(boltLeft);
+
+  const boltTop = window.createPinnectSetScrew(mat);
+  boltTop.position.set(branchBoltOffset, 0, rBody); 
+  mainMesh.add(boltTop);
+
+  const boltSide = window.createPinnectSetScrew(mat);
+  boltSide.rotation.x = 0; 
+  boltSide.position.set(0, rBody, branchBoltOffset); 
+  mainMesh.add(boltSide);
+
+  mainMesh.name = "Pinnect_DK_SOTee_20A";
+  mainMesh.userData = {
+      isFitting: true, isPipe: false, kind: "tee", subKind: "s_o_dk", stlName: "DK_SOTee",
+      snapPoints: [
+        { pos: [0, runFace, 0], normal: [0, 1, 0] },      
+        { pos: [0, -runFace, 0], normal: [0, -1, 0] },    
+        { pos: [branchFace, 0, 0], normal: [1, 0, 0] },   
+        { pos: [0, 0, branchFace], normal: [0, 0, 1] }    
+      ],
+      threadCenters: { 
+          port1: [0, runFace, 0], port2: [0, -runFace, 0], 
+          port3: [branchFace, 0, 0], port4: [0, 0, branchFace] 
+      }
+  };
+
+  mainMesh.children.forEach(c => c.userData = Object.assign({}, mainMesh.userData));
+  placeAtCenterAndGround(mainMesh);
+  scene.add(mainMesh);
+  draggable.push(mainMesh);
+  clearAllSelection();
+  selectedSet.add(mainMesh);
+  markSelected(mainMesh);
+  selectedMesh = mainMesh;
+  if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
+  updateRotationGizmo();
+};
+
+// 🔧 5. DK-SOElbow (3구 코너 엘보) DKA07
+window.spawnPinnectDK_SOElbow20A = function() {
+  saveState();
+  const MM_PER_UNIT = 100;
+
+  // =========================================================
+  const BODY_DIA_MM = 36;    
+  const FACE_POS_MM = 42;    
+  const BOLT_INSET_MM = 10;  
+  const BODY_SEGMENTS = 16; // ✨ 각진 정도
+  // =========================================================
+
+  const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
+  const armLen = FACE_POS_MM / MM_PER_UNIT;
+  const boltOffset = armLen - (BOLT_INSET_MM / MM_PER_UNIT); 
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x666666, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide,
+    flatShading: true // ✨ 각진 면 강조
+  });
+
+  const mainMesh = new THREE.Mesh(new THREE.SphereGeometry(rBody, BODY_SEGMENTS, BODY_SEGMENTS), mat);
+
+  const armGeo = new THREE.CylinderGeometry(rBody, rBody, armLen, BODY_SEGMENTS);
+  armGeo.translate(0, armLen / 2, 0); 
+
+  const armX = new THREE.Mesh(armGeo, mat);
+  armX.rotation.z = -Math.PI / 2;
+  mainMesh.add(armX);
+
+  const armY = new THREE.Mesh(armGeo, mat);
+  mainMesh.add(armY);
+
+  const armZ = new THREE.Mesh(armGeo, mat);
+  armZ.rotation.x = Math.PI / 2; 
+  mainMesh.add(armZ);
+
+  const boltX = window.createPinnectSetScrew(mat);
+  boltX.position.set(boltOffset, 0, rBody);
+  mainMesh.add(boltX);
+
+  const boltY = window.createPinnectSetScrew(mat);
+  boltY.position.set(0, boltOffset, rBody);
+  mainMesh.add(boltY);
+
+  const boltZ = window.createPinnectSetScrew(mat);
+  boltZ.rotation.set(0, 0, -Math.PI / 2); 
+  boltZ.position.set(rBody, 0, boltOffset);
+  mainMesh.add(boltZ);
+
+  mainMesh.name = "Pinnect_DK_SOElbow_20A";
+  mainMesh.userData = {
+      isFitting: true, isPipe: false, kind: "elbow", subKind: "s_o_dk", stlName: "DK_SOElbow",
+      snapPoints: [
+        { pos: [armLen, 0, 0], normal: [1, 0, 0] },   
+        { pos: [0, armLen, 0], normal: [0, 1, 0] },   
+        { pos: [0, 0, armLen], normal: [0, 0, 1] }    
+      ],
+      threadCenters: { port1: [armLen, 0, 0], port2: [0, armLen, 0], port3: [0, 0, armLen] }
+  };
+
+  mainMesh.children.forEach(c => c.userData = Object.assign({}, mainMesh.userData));
+  placeAtCenterAndGround(mainMesh);
+  scene.add(mainMesh);
+  draggable.push(mainMesh);
+  clearAllSelection();
+  selectedSet.add(mainMesh);
+  markSelected(mainMesh);
+  selectedMesh = mainMesh;
+  if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
+  updateRotationGizmo();
+};
+
+// 🔧 6. DK-5Way (5구) DKA16
+window.spawnPinnectDK_5Way20A = function() {
+  saveState();
+  const MM_PER_UNIT = 100;
+
+  // =========================================================
+  const BODY_DIA_MM = 36;    
+  const RUN_LEN_MM = 30;     
+  const BRANCH_LEN_MM = 42;  
+  const BOLT_INSET_MM = 10;  
+  const BODY_SEGMENTS = 16; // ✨ 각진 정도
+  // =========================================================
+
+  const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
+  const runFace = RUN_LEN_MM / MM_PER_UNIT;
+  const branchFace = BRANCH_LEN_MM / MM_PER_UNIT;
+  const boltInset = BOLT_INSET_MM / MM_PER_UNIT;
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x666666, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide,
+    flatShading: true // ✨ 각진 면 강조
+  });
+
+  const runLen = runFace * 2; 
+  const mainMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, runLen, BODY_SEGMENTS), mat);
+  mainMesh.rotation.z = -Math.PI / 2;
+
+  const topMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, branchFace, BODY_SEGMENTS), mat);
+  topMesh.rotation.z = -Math.PI / 2; 
+  topMesh.position.x = branchFace / 2; 
+  mainMesh.add(topMesh);
+
+  const bottomMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, branchFace, BODY_SEGMENTS), mat);
+  bottomMesh.rotation.z = -Math.PI / 2; 
+  bottomMesh.position.x = -branchFace / 2; 
+  mainMesh.add(bottomMesh);
+
+  const sideMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, branchFace, BODY_SEGMENTS), mat);
+  sideMesh.rotation.x = Math.PI / 2; 
+  sideMesh.position.z = branchFace / 2; 
+  mainMesh.add(sideMesh);
+
+  const runBoltOffset = runFace - boltInset;       
+  const branchBoltOffset = branchFace - boltInset; 
+
+  const boltRight = window.createPinnectSetScrew(mat);
+  boltRight.position.set(0, runBoltOffset, rBody); 
+  mainMesh.add(boltRight);
+
+  const boltLeft = window.createPinnectSetScrew(mat);
+  boltLeft.position.set(0, -runBoltOffset, rBody); 
+  mainMesh.add(boltLeft);
+
+  const boltTop = window.createPinnectSetScrew(mat);
+  boltTop.position.set(branchBoltOffset, 0, rBody); 
+  mainMesh.add(boltTop);
+
+  const boltBottom = window.createPinnectSetScrew(mat);
+  boltBottom.position.set(-branchBoltOffset, 0, rBody); 
+  mainMesh.add(boltBottom);
+
+  const boltSide = window.createPinnectSetScrew(mat);
+  boltSide.rotation.x = 0; 
+  boltSide.position.set(0, rBody, branchBoltOffset); 
+  mainMesh.add(boltSide);
+
+  mainMesh.name = "Pinnect_DK_5Way_20A";
+  mainMesh.userData = {
+      isFitting: true, isPipe: false, kind: "5way", subKind: "5way_dk", stlName: "DK_5Way",
+      snapPoints: [
+        { pos: [0, runFace, 0], normal: [0, 1, 0] },      
+        { pos: [0, -runFace, 0], normal: [0, -1, 0] },    
+        { pos: [branchFace, 0, 0], normal: [1, 0, 0] },   
+        { pos: [-branchFace, 0, 0], normal: [-1, 0, 0] }, 
+        { pos: [0, 0, branchFace], normal: [0, 0, 1] }    
+      ],
+      threadCenters: { 
+          port1: [0, runFace, 0], port2: [0, -runFace, 0], 
+          port3: [branchFace, 0, 0], port4: [-branchFace, 0, 0], port5: [0, 0, branchFace] 
+      }
+  };
+
+  mainMesh.children.forEach(c => c.userData = Object.assign({}, mainMesh.userData));
+  placeAtCenterAndGround(mainMesh);
+  scene.add(mainMesh);
+  draggable.push(mainMesh);
+  clearAllSelection();
+  selectedSet.add(mainMesh);
+  markSelected(mainMesh);
+  selectedMesh = mainMesh;
+  if (typeof updatePortVisuals === "function") updatePortVisuals(mainMesh);
+  updateRotationGizmo();
+};
+
+
+
+
+
+
+
+
+
+
+
 /* ========== mm 큐브 부속 생성 (All Chamfer / 모든 면 모따기) ========== */
 function addMmCubeFitting(sizeMm) {
   saveState();
@@ -7603,11 +8067,12 @@ function addMmCubeFitting(sizeMm) {
 
 
 
-/* ========== 사각형 판(가로 x 세로 x 두께) 생성 ========== */
-// 정면에서 봤을 때:
-//  가로 → X 방향 크기
-//  세로 → Y 방향 크기
-//  두께 → Z 방향 크기
+/* =================================================================
+   2026-03-15: 사각판 스냅(자석) 기능 추가
+      - 사각판의 8개 모서리와 6개 면 중앙에 snapPoints 추가
+      - 생성(spawn) 및 크기조절(resize) 시 스냅 포인트 동기화
+   ================================================================= */
+
 function spawnRectPlateWithPrompt() {
   const msg = "가로,세로,두께(mm)를 입력하세요\n예) 600,300,18";
   const input = window.prompt(msg, "600,300,18");
@@ -7619,38 +8084,45 @@ function spawnRectPlateWithPrompt() {
     return;
   }
 
-  const wMm = parts[0]; // 가로
-  const hMm = parts[1]; // 세로
-  const tMm = parts[2]; // 두께
+  const wMm = parts[0]; 
+  const hMm = parts[1]; 
+  const tMm = parts[2]; 
 
-  // mm → 월드 단위
   const w = wMm / MM_PER_UNIT;
   const h = hMm / MM_PER_UNIT;
   const t = tMm / MM_PER_UNIT;
 
   saveState();
 
-  // ★★ 정면 기준:
-  // 가로 = X
-  // 세로 = Z  ← 여기를 바꿔줌 (Y가 아니라 Z)
-  // 두께 = Y
   const geo = new THREE.BoxGeometry(w, t, h);
 
-const mat = new THREE.MeshStandardMaterial({
-  color: 0x4b2e1f,   // 🌳 진한 갈색 (월넛 계열)
-  roughness: 0.75,   // 나무 질감
-  metalness: 0.05   // 금속 느낌 제거
-});
-
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x4b2e1f,   
+    roughness: 0.75,   
+    metalness: 0.05   
+  });
 
   const plate = new THREE.Mesh(geo, mat);
   plate.position.set(0, 0, 0);
 
-  // 정보 저장
   plate.userData.isRectPlate = true;
   plate.userData.widthMm  = wMm;
   plate.userData.heightMm = hMm;
   plate.userData.thickMm  = tMm;
+
+  // ✅ [스냅 포인트 추가] 8개 모서리 + 6개 면 중앙에 자석 생성
+  const hw = w / 2, ht = t / 2, hh = h / 2;
+  plate.userData.snapPoints = [
+    // 8개 모서리
+    { pos: [hw, ht, hh], normal: [1,0,0] }, { pos: [hw, ht, -hh], normal: [1,0,0] },
+    { pos: [-hw, ht, hh], normal: [-1,0,0] }, { pos: [-hw, ht, -hh], normal: [-1,0,0] },
+    { pos: [hw, -ht, hh], normal: [1,0,0] }, { pos: [hw, -ht, -hh], normal: [1,0,0] },
+    { pos: [-hw, -ht, hh], normal: [-1,0,0] }, { pos: [-hw, -ht, -hh], normal: [-1,0,0] },
+    // 6개 면 중앙
+    { pos: [hw, 0, 0], normal: [1,0,0] }, { pos: [-hw, 0, 0], normal: [-1,0,0] },
+    { pos: [0, 0, hh], normal: [0,0,1] }, { pos: [0, 0, -hh], normal: [0,0,-1] },
+    { pos: [0, ht, 0], normal: [0,1,0] }, { pos: [0, -ht, 0], normal: [0,-1,0] }
+  ];
 
   placeAtCenterAndGround(plate);
 
@@ -7664,6 +8136,68 @@ const mat = new THREE.MeshStandardMaterial({
 
   updateRotationGizmo();
 }
+
+
+window.resizeSelectedRectPlatePrompt = function () {
+  if (!selectedMesh || !selectedMesh.userData?.isRectPlate) {
+    alert("사각판을 선택하세요.");
+    return;
+  }
+
+  const w = selectedMesh.userData.widthMm  || 600;
+  const h = selectedMesh.userData.heightMm || 300;
+  const t = selectedMesh.userData.thickMm  || 18;
+
+  const input = prompt(
+    "사각판 크기 입력 (가로,세로,두께 mm)",
+    `${w},${h},${t}`
+  );
+  if (!input) return;
+
+  const parts = input.split(",").map(v => parseFloat(v.trim()));
+  if (parts.length !== 3 || parts.some(v => !v || v <= 0)) {
+    alert("가로,세로,두께를 mm 단위로 정확히 입력하세요.");
+    return;
+  }
+
+  const [wMm, hMm, tMm] = parts;
+
+  saveState();
+
+  const wU = wMm / MM_PER_UNIT;
+  const hU = hMm / MM_PER_UNIT;
+  const tU = tMm / MM_PER_UNIT;
+
+  const box = new THREE.Box3().setFromObject(selectedMesh);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+
+  const newGeo = new THREE.BoxGeometry(wU, tU, hU);
+  selectedMesh.geometry.dispose();
+  selectedMesh.geometry = newGeo;
+
+  selectedMesh.position.copy(center);
+
+  selectedMesh.userData.widthMm  = wMm;
+  selectedMesh.userData.heightMm = hMm;
+  selectedMesh.userData.thickMm  = tMm;
+
+  // ✅ [스냅 포인트 동기화] 크기 변경 후 자석점 위치도 재계산
+  const hw = wU / 2, ht = tU / 2, hh = hU / 2;
+  selectedMesh.userData.snapPoints = [
+    { pos: [hw, ht, hh], normal: [1,0,0] }, { pos: [hw, ht, -hh], normal: [1,0,0] },
+    { pos: [-hw, ht, hh], normal: [-1,0,0] }, { pos: [-hw, ht, -hh], normal: [-1,0,0] },
+    { pos: [hw, -ht, hh], normal: [1,0,0] }, { pos: [hw, -ht, -hh], normal: [1,0,0] },
+    { pos: [-hw, -ht, hh], normal: [-1,0,0] }, { pos: [-hw, -ht, -hh], normal: [-1,0,0] },
+    { pos: [hw, 0, 0], normal: [1,0,0] }, { pos: [-hw, 0, 0], normal: [-1,0,0] },
+    { pos: [0, 0, hh], normal: [0,0,1] }, { pos: [0, 0, -hh], normal: [0,0,-1] },
+    { pos: [0, ht, 0], normal: [0,1,0] }, { pos: [0, -ht, 0], normal: [0,-1,0] }
+  ];
+
+  placeOnGround(selectedMesh);
+  updateRotationGizmo();
+  if (dimensionEnabled) showDimensionsForSelection(selectedMesh);
+};
 
 
 
@@ -9840,6 +10374,53 @@ window.exportBOM = function() {
 
 
 
+/* =================================================================
+   2026-03-15: 정밀 이동(Relative Move) 기능 추가
+      - 특정 거리(mm)만큼 정확히 띄우기 위해 X, Y, Z 이동값 프롬프트 입력 추가
+   ================================================================= */
+window.moveSelectionByMmPrompt = function() {
+  const targets = selectedSet.size > 0 ? [...selectedSet] : (selectedMesh ? [selectedMesh] : []);
+  if (targets.length === 0) {
+    alert("이동할 개체를 선택하세요.");
+    return;
+  }
+
+  const input = prompt(
+    "현재 위치에서 이동할 거리(mm)를 입력하세요.\n(X, Y, Z 순서)\n\n" +
+    "예: 위로 350mm 띄우기 -> 0, 350, 0\n" +
+    "예: 오른쪽 100mm, 앞으로 50mm -> 100, 0, 50", 
+    "0, 350, 0"
+  );
+  
+  if (!input) return;
+
+  // 입력값을 콤마(,) 단위로 쪼개서 숫자로 변환
+  const parts = input.split(",").map(v => parseFloat(v.trim()) || 0);
+  const dxMm = parts[0] || 0;
+  const dyMm = parts[1] || 0;
+  const dzMm = parts[2] || 0;
+
+  if (dxMm === 0 && dyMm === 0 && dzMm === 0) return;
+
+  saveState();
+
+  // mm를 3D 월드 단위로 변환 (MM_PER_UNIT = 100)
+  const dx = dxMm / MM_PER_UNIT;
+  const dy = dyMm / MM_PER_UNIT;
+  const dz = dzMm / MM_PER_UNIT;
+
+  // 이동 실행 (기존 translateSelection 함수 재활용)
+  translateSelection(dx, dy, dz);
+  
+  // 치수선이 켜져있다면 위치 업데이트
+  if (dimensionEnabled && typeof showDimensionsSmartForSelection === "function") {
+    showDimensionsSmartForSelection();
+  }
+};
+
+
+
+
 
 /* ========== 단축키 통합 키보드 이벤트 리스너 (모든 회전/이동 포함) ========== */
 window.addEventListener("keydown", (e) => {
@@ -9912,6 +10493,8 @@ window.addEventListener("keydown", (e) => {
     // Focus  
     if (key === "6") { focusOnSelection(); return; }
 
+    // ▼ 정밀 이동 단축키 추가 ▼
+    if (key === "m") { e.preventDefault(); moveSelectionByMmPrompt(); return; }
     
     // 바닥정렬 
     if (key === "f") { e.preventDefault(); placeSelectionOnGround(); return; }
