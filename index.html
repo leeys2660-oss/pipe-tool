@@ -7585,9 +7585,9 @@ window.spawnPinnectDK_Tee20A = function() {
   // 🛠️ [치수 및 디자인 설정 구역]
   // =========================================================
   const BODY_DIA_MM = 36;    
-  const RUN_LEN_MM = 30;     
-  const BRANCH_LEN_MM = 42;  
-  const BOLT_INSET_MM = 10;  
+  const RUN_LEN_MM = 31;     // 👈 (수정) 중심에서 가로 끝까지 (44mm 적용)
+  const BRANCH_LEN_MM = 44;  // 👈 (수정) 중심에서 세로 끝까지 (44mm 적용)
+  const BOLT_INSET_MM = 10;
   
   // ✨ [NEW] 원통의 각진 정도 (기본값: 16)
   // 8: 팔각형, 12: 십이각형(추천), 16: 아주 살짝 각짐, 32: 완전 매끄러움
@@ -7658,7 +7658,7 @@ window.spawnPinnectDK_Elbow20A = function() {
   const MM_PER_UNIT = 100;
 
   // =========================================================
-  const FACE_POS_MM = 42; 
+  const FACE_POS_MM = 44;   // 👈 전체 외경 62mm를 맞추기 위해 44로 수정! (44 + 반경 18 = 62)
   const BODY_DIA_MM = 36; 
   const BOLT_INSET_MM = 10;
   const BODY_SEGMENTS = 16; // ✨ 각진 정도
@@ -7723,10 +7723,10 @@ window.spawnPinnectDK_SOTee20A = function() {
 
   // =========================================================
   const BODY_DIA_MM = 36;    
-  const RUN_LEN_MM = 30;     
-  const BRANCH_LEN_MM = 42;  
+  const RUN_LEN_MM = 31;     // 👈 (수정) 중심에서 가로 끝까지 (44mm 적용)
+  const BRANCH_LEN_MM = 44;  // 👈 (수정) 중심에서 세로/앞쪽 끝까지 (44mm 적용)
   const BOLT_INSET_MM = 10;  
-  const BODY_SEGMENTS = 16; // ✨ 각진 정도
+  const BODY_SEGMENTS = 16;  // ✨ 각진 정도
   // =========================================================
 
   const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
@@ -7807,9 +7807,9 @@ window.spawnPinnectDK_SOElbow20A = function() {
 
   // =========================================================
   const BODY_DIA_MM = 36;    
-  const FACE_POS_MM = 42;    
+  const FACE_POS_MM = 44;    // 👈 (수정) 중심에서 각 끝단까지 (44mm 적용)
   const BOLT_INSET_MM = 10;  
-  const BODY_SEGMENTS = 16; // ✨ 각진 정도
+  const BODY_SEGMENTS = 16;  // ✨ 각진 정도
   // =========================================================
 
   const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
@@ -7873,50 +7873,68 @@ window.spawnPinnectDK_SOElbow20A = function() {
   updateRotationGizmo();
 };
 
-// 🔧 6. 5-Way Tee DKA16
+// 🔧 6. 5-Way Tee DKA16 (각 방향 길이 독립 제어 버전)
 window.spawnPinnectDK_5Way20A = function() {
   saveState();
   const MM_PER_UNIT = 100;
 
   // =========================================================
+  // 🛠️ [치수 및 디자인 설정 구역]
+  // =========================================================
   const BODY_DIA_MM = 36;    
-  const RUN_LEN_MM = 30;     
-  const BRANCH_LEN_MM = 42;  
+  const RUN_LEN_MM = 44;     // 가로 (좌/우) 길이 (31+31 = 62)
+  const BRANCH_LEN_MM = 31;  // 세로 (위/아래) 길이 
+  
+  // 🎯 [NEW] 앞쪽(빨간 동그라미)으로 튀어나오는 길이 독립!
+  // 중심에서 44mm 뻗어나감 (+ 뒤통수 18mm = 전체 62mm)
+  const SIDE_LEN_MM = 44;    
+  
   const BOLT_INSET_MM = 10;  
-  const BODY_SEGMENTS = 16; // ✨ 각진 정도
+  const BODY_SEGMENTS = 16;  
   // =========================================================
 
   const rBody = (BODY_DIA_MM / 2) / MM_PER_UNIT;
   const runFace = RUN_LEN_MM / MM_PER_UNIT;
   const branchFace = BRANCH_LEN_MM / MM_PER_UNIT;
+  const sideFace = SIDE_LEN_MM / MM_PER_UNIT; // 👈 앞쪽 전용 변수
   const boltInset = BOLT_INSET_MM / MM_PER_UNIT;
 
   const mat = new THREE.MeshStandardMaterial({
     color: 0x666666, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide,
     flatShading: true // ✨ 각진 면 강조
+
+
+    
   });
 
+  // (1) 가로 몸통 (좌/우)
   const runLen = runFace * 2; 
   const mainMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, runLen, BODY_SEGMENTS), mat);
   mainMesh.rotation.z = -Math.PI / 2;
 
+  // (2) 위쪽 몸통
   const topMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, branchFace, BODY_SEGMENTS), mat);
   topMesh.rotation.z = -Math.PI / 2; 
   topMesh.position.x = branchFace / 2; 
   mainMesh.add(topMesh);
 
+  // (3) 아래쪽 몸통
   const bottomMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, branchFace, BODY_SEGMENTS), mat);
   bottomMesh.rotation.z = -Math.PI / 2; 
   bottomMesh.position.x = -branchFace / 2; 
   mainMesh.add(bottomMesh);
 
-  const sideMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, branchFace, BODY_SEGMENTS), mat);
+  // (4) 앞쪽 몸통 (빨간 원 부분) - SIDE_LEN_MM 적용!
+  const sideMesh = new THREE.Mesh(new THREE.CylinderGeometry(rBody, rBody, sideFace, BODY_SEGMENTS), mat);
   sideMesh.rotation.x = Math.PI / 2; 
-  sideMesh.position.z = branchFace / 2; 
+  sideMesh.position.z = sideFace / 2; 
   mainMesh.add(sideMesh);
 
+
+  // (5) 볼트 장착
   const runBoltOffset = runFace - boltInset;       
   const branchBoltOffset = branchFace - boltInset; 
+  const sideBoltOffset = sideFace - boltInset; // 👈 앞쪽 볼트 전용
 
   const boltRight = window.createPinnectSetScrew(mat);
   boltRight.position.set(0, runBoltOffset, rBody); 
@@ -7936,9 +7954,11 @@ window.spawnPinnectDK_5Way20A = function() {
 
   const boltSide = window.createPinnectSetScrew(mat);
   boltSide.rotation.x = 0; 
-  boltSide.position.set(0, rBody, branchBoltOffset); 
+  boltSide.position.set(0, rBody, sideBoltOffset); // 앞쪽 길이에 맞춰 볼트 고정
   mainMesh.add(boltSide);
 
+
+  // (6) 속성 및 스냅포인트 설정
   mainMesh.name = "Pinnect_DK_5Way_20A";
   mainMesh.userData = {
       isFitting: true, isPipe: false, kind: "5way", subKind: "5way_dk", stlName: "DK_5Way",
@@ -7947,11 +7967,11 @@ window.spawnPinnectDK_5Way20A = function() {
         { pos: [0, -runFace, 0], normal: [0, -1, 0] },    
         { pos: [branchFace, 0, 0], normal: [1, 0, 0] },   
         { pos: [-branchFace, 0, 0], normal: [-1, 0, 0] }, 
-        { pos: [0, 0, branchFace], normal: [0, 0, 1] }    
+        { pos: [0, 0, sideFace], normal: [0, 0, 1] }      // 👈 앞쪽 자석 포인트 분리
       ],
       threadCenters: { 
           port1: [0, runFace, 0], port2: [0, -runFace, 0], 
-          port3: [branchFace, 0, 0], port4: [-branchFace, 0, 0], port5: [0, 0, branchFace] 
+          port3: [branchFace, 0, 0], port4: [-branchFace, 0, 0], port5: [0, 0, sideFace] 
       }
   };
 
